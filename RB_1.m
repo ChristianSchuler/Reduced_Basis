@@ -24,7 +24,7 @@ par1 = linspace(st,en,n);
 % viscosity of block
 st = 1;  % smallest parameter value
 en = 1000; % largest parameter value
-n  = 20;  % parameter spacing
+n  = 10;  % parameter spacing
 par2 = linspace(st,en,n);
 
 %% reduced basis routine
