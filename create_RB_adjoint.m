@@ -6,7 +6,7 @@
 % output:
 % B     --> reduced basis
 
-function [B,res,adj_vec, res_max] = create_RB (nel_x, nel_y, nel_z,par1,par2,tol,method)
+function [B,res,adj_vec, res_max] = create_RB (nel_x, nel_y, nel_z,par1,par2,tol)
 
 %initialization
 err      = 100;
@@ -65,28 +65,8 @@ it3 = 0;
             rhs =  PetscBinaryRead('r.1.bin');
             J = A;% - M;
 
-            if method == 1
+            
 
-                %==========================================================
-                % create RB with residual over whole domain
-                %==========================================================
-
-                % solve RB
-                K = B.' * (J) * B;
-                f = B.' * rhs;
-                alpha = K\f;
-                Sol_RB = B * alpha;
-
-                % access error --> global residual is used as an error estimator
-                res = rhs - (J * Sol_RB);            % calculate residual
-                disp(['**********************']);
-                disp(['res = ', num2str(max(abs(res)))]);
-                disp(['**********************']);
-                res_vec = [res_vec max(abs(res))];   % irgendeine coole norm über das residual
-
-                adj_vec = 0;
-
-            elseif method == 2
 
                 %=============================================================
                 % create RB with the help of the adjoint
@@ -119,7 +99,6 @@ it3 = 0;
     %            res = dot(adj_vec,temp_res)
                 res_vec = [res_vec res];   % irgendeine coole norm über das residual
 
-            end 
         end
 
     end
