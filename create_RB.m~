@@ -6,7 +6,7 @@
 % output:
 % B     --> reduced basis
 
-function [B,res,adj_vec, res_max] = create_RB (nel_x, nel_y, nel_z,par1,par2,tol)
+function [B,res,adj_vec, res_max] = create_RB (nel_x, nel_y, nel_z,par1,par2,tol,method)
 
 %initialization
 err      = 100;
