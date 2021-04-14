@@ -35,7 +35,8 @@ par2 = linspace(st,en,n);
 % create truth solution
 eta1 = 1;
 eta2 = 24;
-[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(eta1),' -eta[1] ', num2str(eta2), ' -eta[2] ', num2str(eta2),' -eta[3] ', num2str(eta2),' -eta[4] ', num2str(eta2),' -eta[5] ', num2str(eta2),' -eta[6] ', num2str(eta2), ' -eta[7] ', num2str(eta2),' -eta[8] ', num2str(eta2),' -eta[9] ', num2str(eta2),' -eta[10] ', num2str(eta2)]);
+[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par1(loc1))]);
+%[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
 
 % read data 
 A   =  PetscBinaryRead('Mono_A.bin');

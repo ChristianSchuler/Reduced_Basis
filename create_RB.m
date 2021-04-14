@@ -24,14 +24,13 @@ it = it +1 ;
 
 %% create truth solution and add it to basis
 % create Jacobian and rhs vector solution
-[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par2(loc2)), ' -eta[2] ', num2str(par2(loc2)),' -eta[3] ', num2str(par2(loc2)),' -eta[4] ', num2str(par2(loc2)),' -eta[5] ', num2str(par2(loc2)),' -eta[6] ', num2str(par2(loc2)), ' -eta[7] ', num2str(par2(loc2)),' -eta[8] ', num2str(par2(loc2)),' -eta[9] ', num2str(par2(loc2)),' -eta[10] ', num2str(par2(loc2))]);
-%[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ./FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2)), ' -rho[2] ', num2str(par2(loc2)),' -rho[3] ', num2str(par2(loc2)),' -rho[4] ', num2str(par2(loc2)),' -rho[5] ', num2str(par2(loc2)),' -rho[6] ', num2str(par2(loc2)), ' -rho[7] ', num2str(par2(loc2)),' -rho[8] ', num2str(par2(loc2)),' -rho[9] ', num2str(par2(loc2)),' -rho[10] ', num2str(par2(loc2))]);
+[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par1(loc1))]);
+%[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
 
  % read data 
 A   =  PetscBinaryRead('Mono_A.bin');
 M   =  PetscBinaryRead('Mono_M.bin');
 rhs =  PetscBinaryRead('r.1.bin');
-J = A;% - M;
 
 % creating truth solution
 [Sol_T,Sol_Vel,Sol_P,VV,VP,PV,PP] = solve_stokes(A,M,rhs,nel_x, nel_y, nel_z);
@@ -56,8 +55,8 @@ it3 = 0;
             
             
             % create Jacobian and rhs vector solution
-            [temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(k1)),' -eta[1] ', num2str(par2(k2)), ' -eta[2] ', num2str(par2(k2)),' -eta[3] ', num2str(par2(k2)),' -eta[4] ', num2str(par2(k2)),' -eta[5] ', num2str(par2(k2)),' -eta[6] ', num2str(par2(k2)), ' -eta[7] ', num2str(par2(k2)),' -eta[8] ', num2str(par2(k2)),' -eta[9] ', num2str(par2(k2)),' -eta[10] ', num2str(par2(k2))]);
-            %[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ./FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2)), ' -rho[2] ', num2str(par2(loc2)),' -rho[3] ', num2str(par2(loc2)),' -rho[4] ', num2str(par2(loc2)),' -rho[5] ', num2str(par2(loc2)),' -rho[6] ', num2str(par2(loc2)), ' -rho[7] ', num2str(par2(loc2)),' -rho[8] ', num2str(par2(loc2)),' -rho[9] ', num2str(par2(loc2)),' -rho[10] ', num2str(par2(loc2))]);
+            [temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par1(loc1))]);
+            %[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
 
             % read data 
             A   =  PetscBinaryRead('Mono_A.bin');
