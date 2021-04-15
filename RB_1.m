@@ -28,7 +28,7 @@ n  = 10;  % parameter spacing
 par2 = linspace(st,en,n);
 
 %% reduced basis routine
-[B,res,adj_vec, res_max] = create_RB(nel_x, nel_y, nel_z,par1,par2,1e-2);
+[B,res, res_max] = create_RB(nel_x, nel_y, nel_z,par1,par2,1e-2);
 
 %% create random truth solution and reduced basis solution
 

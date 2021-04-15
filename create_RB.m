@@ -6,7 +6,7 @@
 % output:
 % B     --> reduced basis
 
-function [B,res,adj_vec, res_max] = create_RB (nel_x, nel_y, nel_z,par1,par2,tol)
+function [B,res, res_max] = create_RB (nel_x, nel_y, nel_z,par1,par2,tol)
 
 %initialization
 err      = 100;
@@ -15,9 +15,6 @@ loc2      = 1;    % choosing first paramter of par as first guess
 B        = [];   % initialize basis B
 it       = 1;
 res_max  = []; % vector to store maximal errors
-
-% DEIM algorithm
-
 
 %% greedy algorithm
 while err > tol
@@ -102,6 +99,7 @@ while err > tol
 
 end
 
-disp(['==============================================']);
-disp(['finished!! total number of basis funtions ',num2str(it)]);
-disp(['==============================================']);
+disp(['==================================================================================']);
+disp(['reduced basis created with greedy algorithm!! total number of basis funtions ',num2str(it)]);
+disp(['==================================================================================']);
+
