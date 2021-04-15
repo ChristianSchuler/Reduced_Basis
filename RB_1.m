@@ -24,7 +24,7 @@ par1 = linspace(st,en,n);
 % viscosity of block
 st = 1;  % smallest parameter value
 en = 1000; % largest parameter value
-n  = 14;  % parameter spacing
+n  = 4;  % parameter spacing
 par2 = linspace(st,en,n);
 
 %% reduced basis routine
@@ -35,7 +35,7 @@ par2 = linspace(st,en,n);
 % create truth solution
 eta1 = 1;
 eta2 = 24;
-[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par1(loc1))]);
+[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', eta1,' -eta[1] ', eta2]);
 %[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
 
 % read data 
