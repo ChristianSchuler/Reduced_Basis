@@ -6,7 +6,7 @@
 
 % output
 % p - interpolation indices
-function [P,p] = DEIM (B)
+function [p] = DEIM (B)
 
 % max of first basis vector
 [val, loc] = max(abs(B(:,1)));
@@ -23,7 +23,7 @@ p      = loc;
         c           = (P.' * B(:,i)) \ (P.' * U);
         
         %residual
-        res         = B(:,i) - U*(c.');
+        res         = B(:,i) - U*c;
         [val, loc]  = max(abs(res));
         
         % update U,P and p
@@ -31,7 +31,7 @@ p      = loc;
         u_vec       = zeros(length(B(:,1)),1);
         u_vec(loc)  = 1;
         P           = [P, u_vec];
-        p           = [p; loc];
+        p           = [
         
     end
 
