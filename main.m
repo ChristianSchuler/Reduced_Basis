@@ -30,8 +30,11 @@ par2 = linspace(st,en,n);
 %% reduced basis routine
 [B,res, res_max] = create_RB(nel_x, nel_y, nel_z,par1,par2,1e-2);
 
-%% DEIM
-[P] = DEIM(B);
+%% DEIM for matrix
+[U,P] = DEIM(B);
+
+%% DEIM for rhs
+
 
 %% create random truth solution and reduced basis solution
 

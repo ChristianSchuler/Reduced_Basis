@@ -6,7 +6,7 @@
 
 % output
 % p - interpolation indices
-function [P,p] = DEIM (B)
+function [U,P] = DEIM (B)
 
 % max of first basis vector
 [val, loc] = max(abs(B(:,1)));
