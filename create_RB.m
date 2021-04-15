@@ -16,6 +16,9 @@ B        = [];   % initialize basis B
 it       = 1;
 res_max  = []; % vector to store maximal errors
 
+% DEIM algorithm
+
+
 %% greedy algorithm
 while err > tol
     
@@ -26,10 +29,6 @@ while err > tol
     % create Jacobian and rhs vector solution
     [temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par2(loc2))]);
     %[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
-
-    %delete calculated value
-    par1(loc1) = [];
-    par2(loc2) = [];
     
      % read data 
     A   =  PetscBinaryRead('Mono_A.bin');
@@ -57,7 +56,7 @@ while err > tol
 
 
             % create Jacobian and rhs vector solution
-            [temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(k1),' -eta[1] ', num2str(k2)]);
+            [temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(k1)),' -eta[1] ', num2str(par2(k2))]);
             %[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
 
             % read data 
