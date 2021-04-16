@@ -13,19 +13,19 @@ function [U,P,p] = DEIM (B)
 
 %initialize U,P and p
 
-r      = length(B(1,:));   % rank
+r      = length(B);   % rank
 U      = [B(:,1)];
-P      = zeros(length(B(:,1)),1);
+P      = zeros(r,1);
 P(loc) = 1;
 p      = loc;
 
     for i = 2:r
         
         % solve for c
-        c           = (P.' * U) \ (P.' * B(:,i));
+        c           = (P.' * B(:,i)) \ (P.' * U);
         
         %residual
-        res         = B(:,i) - U*(c);
+        res         = B(:,i) - U*(c.');
         [val, loc]  = max(abs(res));
         
         % update U,P and p
