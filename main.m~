@@ -43,7 +43,7 @@ par2 = linspace(st,en,n);
 system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(1),' -eta[1] ', num2str(10),' -dump_decomposition_matrices']);
 
 
-% assemble matrix
+% assemlbe matrix
 n_p     = nel_x*nel_y*nel_z;   % number of pressure nodes
 A       =  PetscBinaryRead('Matrices/Ass_A.bin');
 rhs     =  PetscBinaryRead('rhs.bin');
@@ -55,8 +55,6 @@ divP    = A(1:end-n_p,end-n_p+1:end);
 n_vis   = ((nel_x+1)*nel_y*nel_z)+(nel_x*(nel_y+1)*nel_z)+(nel_x*nel_y*(nel_z+1));
 M       = sparse(n_vis,n_vis);
 N       = n_p+((nel_x+1)*(nel_y+1)*nel_z)+((nel_x+1)*nel_y*(nel_z+1))+(nel_x*(nel_y+1)*(nel_z+1));
-
-% tbd: 
 for i = 1:N
     i_st    = num2str(i);
     Vis_fix = PetscBinaryRead(['Vis',i_st,'.bin']);
@@ -67,18 +65,17 @@ for i = 1:N
     i
 end
 
-% concatenate the different matrices
 A_ass = zeros(n_vis+n_p,n_vis+n_p);% extract pressure and velocity divergence matrices from assembled A matrix
 A_ass(1:n_vis,1:n_vis) = M;
 A_ass(end-n_p+1:end,1:end-n_p) = divV;
 A_ass(1:end-n_p,end-n_p+1:end) = divP;
+figure(1)
+spy(A)
+figure(2)
+spy(A_ass)
+figure(3)
+spy(A-A_ass)
 
-% assemble boundary condition
-for i = 1:length(zrows)
-    i
-    A_ass(zrows(i)+1,:)        = 0;
-    A_ass(zrows(i)+1,zrows(i)+1) = 1;
-end
 % =========================================================================
 
 %% reduced basis routine

@@ -30,7 +30,7 @@ while err > tol
      % read data 
     A   =  PetscBinaryRead('Mono_A.bin');
     M   =  PetscBinaryRead('Mono_M.bin');
-    rhs =  PetscBinaryRead('r.1.bin');
+    rhs =  PetscBinaryRead('rhs.bin');
 
     % creating truth solution
     [Sol_T,Sol_Vel,Sol_P,VV,VP,PV,PP] = solve_stokes(A,M,rhs,nel_x, nel_y, nel_z);
@@ -60,7 +60,7 @@ while err > tol
             A   =  PetscBinaryRead('Mono_A.bin');
             M   =  PetscBinaryRead('Mono_M.bin');
             rhs =  PetscBinaryRead('r.1.bin');
-            J = A;% - M;
+            J = A - M;
 
             %=============================================================
             % create RB with residual over whole domain
