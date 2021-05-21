@@ -2,7 +2,7 @@
 
 %input
 % B - reduced basis of problem, obtained e.g by greedy algorithm
-function [U,P] = DEIM (B)
+function [U,P,p] = DEIM (B)
 
 % max of first basis vector
 [val, loc] = max(abs(B(:,1)));

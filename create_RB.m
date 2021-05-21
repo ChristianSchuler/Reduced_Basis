@@ -6,15 +6,16 @@
 % output:
 % B     --> reduced basis
 
-function [B,res, res_max] = create_RB (nel_x, nel_y, nel_z,par1,par2,tol)
+function [B,res, res_max, ETA] = create_RB (nel_x, nel_y, nel_z,par1,par2,tol)
 
 %initialization
-err      = 100;
+err       = 100;
 loc1      = 1;    % choosing first paramter of par as first guess
 loc2      = 1;    % choosing first paramter of par as first guess
-B        = [];   % initialize basis B
-it       = 1;
-res_max  = []; % vector to store maximal errors
+B         = [];   % initialize basis B
+ETA       = [];   % initialize basis eta
+it        = 0;
+res_max   = []; % vector to store maximal errors
 
 %% greedy algorithm
 while err > tol
@@ -27,18 +28,22 @@ while err > tol
     [temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par2(loc2))]);
     %[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
     
-     % read data 
-    A   =  PetscBinaryRead('Mono_A.bin');
-    M   =  PetscBinaryRead('Mono_M.bin');
-    rhs =  PetscBinaryRead('rhs.bin');
-
+    % read data 
+    A   =  sparse(PetscBinaryRead('Matrices/Ass_A.bin'));
+    M   =  sparse(PetscBinaryRead('Matrices/Ass_M.bin'));
+    rhs =  sparse(PetscBinaryRead('Matrices/rhs.bin'));
+    eta =  PetscBinaryRead('Matrices/eta.bin');
+    
+    ETA = [ETA eta];   % enrich eta basis
+    
     % creating truth solution
     [Sol_T,Sol_Vel,Sol_P,VV,VP,PV,PP] = solve_stokes(A,M,rhs,nel_x, nel_y, nel_z);
 
-    B = [B Sol_T];              % add solution to reduced basis
+    Sol_T = zeros(length(A),1) + Sol_T;
+    B = [B Sol_T];     % enrich reduced basis
     B = orth(B);
 
-    res_vec  = []; % empty residual vector
+    res_vec  = [];     % empty residual vector
 
     %% evaluate argmax of parameter space
     it2 = 0;
@@ -57,9 +62,10 @@ while err > tol
             %[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
 
             % read data 
-            A   =  PetscBinaryRead('Mono_A.bin');
-            M   =  PetscBinaryRead('Mono_M.bin');
-            rhs =  PetscBinaryRead('r.1.bin');
+               % read data 
+            A   =  sparse(PetscBinaryRead('Matrices/Ass_A.bin'));
+            M   =  sparse(PetscBinaryRead('Matrices/Ass_M.bin'));
+            rhs =  sparse(PetscBinaryRead('Matrices/rhs.bin'));
             J = A - M;
 
             %=============================================================
