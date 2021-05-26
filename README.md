@@ -1,2 +1,2 @@
-# Reduced_Basis
+# Reduced Basis
 
