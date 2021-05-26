@@ -20,47 +20,88 @@ coordx = 1;
 coordy = 1;
 coordz = 1;
 
+%% ======= graviational accleration =======================================
+g = -1; % acceleration in z direction; assuming that acceleration of other directions is 0
+
 %% ======== adjust RB parameters ==========================================
-% viscosity of matrix
-st   = 1;  % smallest parameter value
-en   = 1;  % largest parameter value
-n    = 1; % parameter spacing
+% viscosity of block
+st   = 10;  % smallest parameter value
+en   = 100;  % largest parameter value
+n    = 4; % parameter spacing
 par1 = linspace(st,en,n);
 
-% viscosity of block
-st   = 1;  % smallest parameter value
+% density of block
+st   = 10;  % smallest parameter value
 en   = 100; % largest parameter value
-n    = 6;  % parameter spacing
+n    = 4;  % parameter spacing
 par2 = linspace(st,en,n);
 
 
 %% ======== reduced basis routine =========================================
-[B,res, res_max, ETA] = create_RB(nel_x, nel_y, nel_z,par1,par2,1e-2);
-
-%% === precompute matrixes that are needed to evaluate the RB solution ====
+[B,res, res_max, ETA, RHO] = create_RB(nel_x, nel_y, nel_z,par1,par2,1e-2);
+B = orth(B);
+%% ======== precompute matrixes from Jacobian =============================
 U       = [];
-M       = precompute_mat(B, nel_x,nel_y,nel_z,0,ETA,U);
+M       = precompute_mat(B, nel_x, nel_y, nel_z, 0, U);
 
-%% ======== DEIM ==========================================================
+%% ======== precomputed Jacobian matrixes with DEIM =======================
 % apply DEIM to eta basis
-ETA      = orth(ETA);      % orthonrmalize ETA matrix; important elsewise matrix tends to be singular
+ETA      = orth(ETA);      % orthonormalize ETA matrix; important elsewise matrix tends to be singular
 [U,P,p]  = DEIM(ETA);
-
-M_DEIM   = precompute_mat(B, nel_x,nel_y,nel_z,1,U);
 eta_DEIM = inv(P.'*U) * P.';
 
+M_DEIM   = precompute_mat(B, nel_x, nel_y, nel_z, 1, U);
+
+
+%% ======= DEIM with rhs ==================================================
+% this method holds for rhs where only the gravitational potential matters 
+n_vx = ((nel_x+1)*nel_y*nel_z);
+n_vy = (nel_x*(nel_y+1)*nel_z);
+n_vz = (nel_x*nel_y*(nel_z+1));
+n_p  = (nel_x*nel_y*nel_z);
+n    = n_vx + n_vy + n_vz + n_p;
+n_xy = nel_x*nel_y;
+RHO_i = zeros(n,length(RHO(1,:)));
+n_nz    = (nel_x*nel_y*(nel_z-1));
+for j = 1:length(RHO(1,:))
+    for i = 1:n_nz
+        RHO_i((n_vx+n_vy+n_xy + i),j) = (RHO(i,j) + RHO(i+(n_xy),j));
+    end
+end
+
+RHO_i    = orth(RHO_i);      % orthonormalize ETA matrix; important elsewise matrix tends to be singular
+[U,P,p]  = DEIM(RHO_i);
+rho_DEIM = inv(P.'*U) * P.';
+
+[rhs_bl]      = precompute_rhs(B, nel_x, nel_y, nel_z, g , 0, U);
+[rhs_bl_DEIM] = precompute_rhs(B, nel_x, nel_y, nel_z, g , 1, U);
 
 %% ================= check solutions ======================================
 % create truth solution
-eta1 = 1;
-eta2 = 24;
-system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(eta1),' -eta[1] ', num2str(eta2)]);
-%[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
+eta = 20;
+rho = 40;
+system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect2.dat -eta[1] ', num2str(eta),' -rho[1] ', num2str(rho)]);
 
 % read data 
 A         =  PetscBinaryRead('Matrices/Ass_A.bin');
 M_lamem   =  PetscBinaryRead('Matrices/Ass_M.bin');
 rhs       =  PetscBinaryRead('Matrices/rhs.bin');
+rho       =  PetscBinaryRead('Matrices/rho.bin');
+  
+% n_nz    = (nel_x*nel_y*(nel_z-1));
+% n_xy    = nel_x*nel_y;
+rho_i = zeros(n_nz,1);
+
+for i = 1:n_nz
+    rho_i(i) = (rho(i) + rho(i+(n_xy)));
+end
+
+rho_i_deim = zeros(n,1);
+
+for i = 1:n_nz
+    rho_i_deim((n_vx+n_vy+n_xy + i)) = (rho(i) + rho(i+(n_xy)));
+end
+
 
 % Solve linear system
 [Sol,Sol_Vel,Sol_P,VV,VP,PV,PP,J] = solve_stokes(A,M_lamem,rhs,nel_x, nel_y, nel_z);
@@ -71,50 +112,70 @@ tic
 u_truth = J\rhs;
 toc
 
+% solve RB
+%disp('direct solve of truth problem:');
+%tic 
+%u_truth = J\rhs;
+%toc
+
 % assemble matrix with precomputed matrices
 disp('direct solve with reduced basis by assembling the matrix with precomputed matrices:');
 tic
 m     = length(B(1,:));
 eta   = PetscBinaryRead('Matrices/eta.bin');
-N     = length(M(1,1,:));
+N_K     = length(M(1,1,:));
 K2    = sparse(m,m);
 disp('Matrix assembling time:');
-for i = 1:N
+% assemble K
+for i = 1:N_K
     K2 = K2 + (eta(i)*M(:,:,i));  
 end
-f2 = B.' * rhs;
+
+%assemble rhs
+N_R   = length(rhs_bl(1,:));
+f2    = sparse(m,1);
+for i = 1:N_R
+    f2 = f2 + (rho_i(i)*rhs_bl(:,i));
+end
+
+%f2 = B.' * rhs;
 alpha2 = K2\f2;
 u_RB2 = B * alpha2;
 toc
 
-% assemble matrix with precomputed  DEIM matrices
-disp('direct solve with reduced basis with DEIM:');
-
-m     = length(B(1,:));
-eta   =  PetscBinaryRead('Matrices/eta.bin');
-N     = length(M_DEIM(1,1,:));
-K3    = sparse(m,m);
-tic
-ct    = eta_DEIM*eta;
-toc
-tic
-for i = 1:N
-    K3 = K3 + (ct(i)*M_DEIM(:,:,i));  
-end
-toc
-tic
-f3 = B.' * rhs;
-alpha3 = K3\f3;
-u_DEIM = B * alpha3;
-toc
+% % assemble matrix with precomputed  DEIM matrices
+% disp('direct solve with reduced basis with DEIM:');
+% tic
+% m     = length(B(1,:));
+% eta   =  PetscBinaryRead('Matrices/eta.bin');
+% % assemble matrix K
+% N_K     = length(M_DEIM(1,1,:));
+% K3      = sparse(m,m);
+% ct_eta  = eta_DEIM*eta;
+% for i = 1:N_K
+%     K3 = K3 + (ct_eta(i)*M_DEIM(:,:,i));  
+% end
+% 
+% % assemble rhs
+% N_R    = length(rhs_bl_DEIM(1,:));
+% f3     = sparse(m,1);
+% ct_rho = rho_DEIM*rho_i_deim;
+% for i = 1:N_R
+%     f3 = f3 + (ct_rho(i)*rhs_bl_DEIM(:,i));
+% end
+% 
+% % f3 = B.' * rhs;
+% alpha3 = K3\f3;
+% u_DEIM = B * alpha3;
+% toc
 
 
 %% calculate differences
-ut      = u_truth(1:length(Sol_Vel));
-urb     = u_RB(1:length(Sol_Vel));
-urb2    = u_RB2(1:length(Sol_Vel));
-uDEIM  = u_DEIM(1:length(Sol_Vel));
-uRB_diff = max(ut-urb2)
+ut       = u_truth(1:length(Sol_Vel));
+%urb      = u_RB(1:length(Sol_Vel));
+urb2     = u_RB2(1:length(Sol_Vel));
+% uDEIM    = u_DEIM(1:length(Sol_Vel));
+% uRB_diff = max(ut-urb2);
 
 %% ========= plot velocities =====================================================
 
@@ -145,17 +206,17 @@ title('RB solution');
 xlabel('x');
 ylabel('z');
     
-% DEIM solution
-subplot(2,3,3)
-[V3d_DEIM] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, uDEIM,'y','xz');
-x     = linspace(0,coordx,nel_x);
-y     = linspace(0,coordz,nel_z);
-[X,Y] = meshgrid(x,y);
-pcolor(X,Y,V3d_DEIM(:,:,14).'); colorbar
-shading interp;
-title('DEIM solution');
-xlabel('x');
-ylabel('z');
+% % DEIM solution
+% subplot(2,3,3)
+% [V3d_DEIM] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, uDEIM,'y','xz');
+% x     = linspace(0,coordx,nel_x);
+% y     = linspace(0,coordz,nel_z);
+% [X,Y] = meshgrid(x,y);
+% pcolor(X,Y,V3d_DEIM(:,:,14).'); colorbar
+% shading interp;
+% title('DEIM solution');
+% xlabel('x');
+% ylabel('z');
     
 % difference truth/RB
 subplot(2,3,4)
@@ -168,27 +229,27 @@ title('difference btw thruth & RB');
 xlabel('x');
 ylabel('z');
     
-% difference truth/DEIM
-subplot(2,3,5)
-diff_3D = V3d_t-V3d_DEIM;
-%diff_3D = diff_3D/max(max(V_3d_t(:,:,14)));
-[X,Y] = meshgrid(x,y);
-pcolor(X,Y,diff_3D(:,:,14).'); colorbar
-shading interp;
-title('difference btw thruth & DEIM');
-xlabel('x');
-ylabel('z');
-    
-% difference RB/DEIM
-subplot(2,3,6)
-diff_3D = V3d_RB-V3d_DEIM;
-%diff_3D = diff_3D/max(max(V_3d_t(:,:,14)));
-[X,Y] = meshgrid(x,y);
-pcolor(X,Y,diff_3D(:,:,14).'); colorbar
-shading interp;
-title('difference btw RB & DEIM');
-xlabel('x');
-ylabel('z');
+% % difference truth/DEIM
+% subplot(2,3,5)
+% diff_3D = V3d_t-V3d_DEIM;
+% %diff_3D = diff_3D/max(max(V_3d_t(:,:,14)));
+% [X,Y] = meshgrid(x,y);
+% pcolor(X,Y,diff_3D(:,:,14).'); colorbar
+% shading interp;
+% title('difference btw thruth & DEIM');
+% xlabel('x');
+% ylabel('z');
+%     
+% % difference RB/DEIM
+% subplot(2,3,6)
+% diff_3D = V3d_RB-V3d_DEIM;
+% %diff_3D = diff_3D/max(max(V_3d_t(:,:,14)));
+% [X,Y] = meshgrid(x,y);
+% pcolor(X,Y,diff_3D(:,:,14).'); colorbar
+% shading interp;
+% title('difference btw RB & DEIM');
+% xlabel('x');
+% ylabel('z');
 
 %% plot residual   
 % plot max residual after adding a basis function

@@ -84,7 +84,9 @@ elseif mode == 1
             % multiply by reduced basis
             i
             j
-            end
-            PMats(:,:,j) = Mi 
-        end
+         end
+            PMats(:,:,j) = Mi; 
+    end
+        
+end
 end
