@@ -2,7 +2,7 @@ function [Sol,Sol_Vel,Sol_P,VV,VP,PV,PP,J] = solve_stokes(A,M,rhs,nel_x, nel_y, 
 
 
 % Jacobian
-J = A - M;
+J = A;% - M;
 
 % total number of velocity nodes in the mesh
 n_velx = (nel_x+1)*nel_y*nel_z;

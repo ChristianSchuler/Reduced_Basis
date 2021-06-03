@@ -10,7 +10,8 @@ n_p     =  nel_x*nel_y*nel_z;   % number of pressure nodes
 n_vis   = ((nel_x+1)*nel_y*nel_z)+(nel_x*(nel_y+1)*nel_z)+(nel_x*nel_y*(nel_z+1));
 % number of dumped decomposition matrices
 N       = n_p+((nel_x+1)*(nel_y+1)*nel_z)+((nel_x+1)*nel_y*(nel_z+1))+(nel_x*(nel_y+1)*(nel_z+1));
-% context to store matrices
+% one more matrix for pressure velo divergence matrix
+N       = N+1;
 
 %% collect all decompositionj matrices (usually many --> N!!)
 system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(1),' -eta[1] ', num2str(10),' -dump_decomposition_matrices']);
@@ -24,13 +25,12 @@ divV    = sparse(A(end-n_p+1:end,1:end-n_p));
 divP    = sparse(A(1:end-n_p,end-n_p+1:end));
 B_t     =  B.';
 
-
 %% without DEIM
 if mode == 0
     PMats   = zeros(m,m,N);
-    for i = 1:N
+    for i = 1:N-1
         
-        A_ass = sparse(n_vis+n_p,n_vis+n_p);% extract pressure and velocity divergence matrices from assembled A matrix
+        A_ass = sparse(n_vis+n_p,n_vis+n_p);
         
         % load decomposition matrices and multiply by corresponding eta value
         Vis_fix = sparse(PetscBinaryRead(['Matrices/Vis',num2str(i),'.bin']));
@@ -42,25 +42,29 @@ if mode == 0
         D                = diag(diagonal);
         Vis_fix          = Vis_fix + D;
         
-        A_ass(1:n_vis,1:n_vis) = Vis_fix;
-        A_ass(end-n_p+1:end,1:end-n_p) = divV;
-        A_ass(1:end-n_p,end-n_p+1:end) = divP;
-
+        A_ass(1:n_vis,1:n_vis)         = Vis_fix;
+        
         % multiply by reduced basis
         PMats(:,:,i) = B_t * A_ass * B;
         i
     end
-    
+
+% pressure and velocity divergence submatrix
+A_ass = sparse(n_vis+n_p,n_vis+n_p);    
+A_ass(end-n_p+1:end,1:end-n_p) = divV;
+A_ass(1:end-n_p,end-n_p+1:end) = divP;
+PMats(:,:,end) = B_t * A_ass * B;
+
 %% with DEIM
 elseif mode == 1
         dim_DEIM = length(U(1,:));
-        PMats    = zeros(m,m,dim_DEIM);
+        PMats    = zeros(m,m,dim_DEIM+1);
         
     for j = 1:dim_DEIM
                 
         Mi = sparse(m,m);
                 
-        for i = 1:N
+        for i = 1:N-1
                     
             A_ass = sparse(n_vis+n_p,n_vis+n_p);% extract pressure and velocity divergence matrices from assembled A matrix
 
@@ -80,13 +84,18 @@ elseif mode == 1
 
             Mi = Mi + U(i,j)*(B_t * A_ass * B);
 
-
             % multiply by reduced basis
             i
             j
          end
             PMats(:,:,j) = Mi; 
     end
-        
+    
+% pressure and velocity divergence submatrix
+A_ass = sparse(n_vis+n_p,n_vis+n_p);    
+A_ass(end-n_p+1:end,1:end-n_p) = divV;
+A_ass(1:end-n_p,end-n_p+1:end) = divP;
+PMats(:,:,end) = B_t * A_ass * B;
+
 end
 end

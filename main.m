@@ -32,13 +32,13 @@ par1 = linspace(st,en,n);
 
 % density of block
 st   = 10;  % smallest parameter value
-en   = 100; % largest parameter value
-n    = 4;  % parameter spacing
+en   = 10; % largest parameter value
+n    = 1;  % parameter spacing
 par2 = linspace(st,en,n);
 
 
 %% ======== reduced basis routine =========================================
-[B,res, res_max, ETA, RHO] = create_RB(nel_x, nel_y, nel_z,par1,par2,1e-2);
+[B, res_max, ETA, RHO] = create_RB(nel_x, nel_y, nel_z,g,par1,par2,1e-3);
 B = orth(B);
 %% ======== precompute matrixes from Jacobian =============================
 U       = [];
@@ -78,18 +78,18 @@ rho_DEIM = inv(P.'*U) * P.';
 
 %% ================= check solutions ======================================
 % create truth solution
-eta = 20;
-rho = 40;
+eta = 66;
+rho = 10;
 system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect2.dat -eta[1] ', num2str(eta),' -rho[1] ', num2str(rho)]);
 
 % read data 
 A         =  PetscBinaryRead('Matrices/Ass_A.bin');
 M_lamem   =  PetscBinaryRead('Matrices/Ass_M.bin');
-rhs       =  PetscBinaryRead('Matrices/rhs.bin');
 rho       =  PetscBinaryRead('Matrices/rho.bin');
-  
-% n_nz    = (nel_x*nel_y*(nel_z-1));
-% n_xy    = nel_x*nel_y;
+sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
+   
+n_nz    = (nel_x*nel_y*(nel_z-1));
+n_xy    = nel_x*nel_y;
 rho_i = zeros(n_nz,1);
 
 for i = 1:n_nz
@@ -102,27 +102,60 @@ for i = 1:n_nz
     rho_i_deim((n_vx+n_vy+n_xy + i)) = (rho(i) + rho(i+(n_xy)));
 end
 
+% rhs wo rho
+g_fac = g/2;
 
-% Solve linear system
+% variables for calculating rhs
+n_nz    = (nel_x*nel_y*(nel_z-1));
+n_xy    = nel_x*nel_y;
+
+ % total number of velocity nodes in the mesh
+n_velx = (nel_x+1)*nel_y*nel_z;
+n_vely = (nel_y+1)*nel_x*nel_z;
+n_velz = (nel_z+1)*nel_x*nel_y;
+n_vel  = n_velx + n_vely + n_velz; % total number of all velocity points
+
+% pressure nodes
+n_p = nel_x * nel_y * nel_z;
+
+%total nodes
+N = n_vel+n_p;
+% calculate rhs
+            rho_i = zeros(n_nz,1);
+
+            for i = 1:n_nz
+                rho_i(i) = (rho(i) + rho(i+(n_xy)));
+            end
+            
+            rhs = sparse(N,1);
+
+            for i = 1:n_velz-(2*n_xy)
+                rhs(n_velx+n_vely+n_xy+i) = rho_i(i)*g_fac;
+            end
+
+% % Solve linear system
 [Sol,Sol_Vel,Sol_P,VV,VP,PV,PP,J] = solve_stokes(A,M_lamem,rhs,nel_x, nel_y, nel_z);
 
 % solve RB
 disp('direct solve of truth problem:');
 tic 
-u_truth = J\rhs;
+u_truth1 = J\(-rhs);
 toc
 
-% solve RB
-%disp('direct solve of truth problem:');
-%tic 
-%u_truth = J\rhs;
-%toc
+disp('direct solve with reduced basis:');
+tic
+K = B.' * (J) * B;
+f = B.' * rhs;
+alpha = K\f;
+u_RB = B * alpha;
+toc
 
 % assemble matrix with precomputed matrices
 disp('direct solve with reduced basis by assembling the matrix with precomputed matrices:');
 tic
 m     = length(B(1,:));
 eta   = PetscBinaryRead('Matrices/eta.bin');
+eta   = [eta; 1];
 N_K     = length(M(1,1,:));
 K2    = sparse(m,m);
 disp('Matrix assembling time:');
@@ -131,31 +164,34 @@ for i = 1:N_K
     K2 = K2 + (eta(i)*M(:,:,i));  
 end
 
-%assemble rhs
+% assemble rhs
 N_R   = length(rhs_bl(1,:));
 f2    = sparse(m,1);
 for i = 1:N_R
     f2 = f2 + (rho_i(i)*rhs_bl(:,i));
 end
 
-%f2 = B.' * rhs;
-alpha2 = K2\f2;
+%f2 = B.' * -rhs;
+alpha2 = K2\(f2);
 u_RB2 = B * alpha2;
 toc
 
-% % assemble matrix with precomputed  DEIM matrices
-% disp('direct solve with reduced basis with DEIM:');
-% tic
-% m     = length(B(1,:));
-% eta   =  PetscBinaryRead('Matrices/eta.bin');
-% % assemble matrix K
-% N_K     = length(M_DEIM(1,1,:));
-% K3      = sparse(m,m);
-% ct_eta  = eta_DEIM*eta;
-% for i = 1:N_K
-%     K3 = K3 + (ct_eta(i)*M_DEIM(:,:,i));  
-% end
-% 
+% assemble matrix with precomputed  DEIM matrices
+disp('direct solve with reduced basis with DEIM:');
+tic
+m     = length(B(1,:));
+eta   =  PetscBinaryRead('Matrices/eta.bin');
+% assemble matrix K
+N_K     = length(M_DEIM(1,1,:));
+K3      = sparse(m,m);
+ct_eta  = eta_DEIM*eta;
+ct_eta  = [ct_eta; 1];
+for i = 1:N_K
+    K3 = K3 + (ct_eta(i)*M_DEIM(:,:,i));  
+end
+
+
+
 % % assemble rhs
 % N_R    = length(rhs_bl_DEIM(1,:));
 % f3     = sparse(m,1);
@@ -163,18 +199,19 @@ toc
 % for i = 1:N_R
 %     f3 = f3 + (ct_rho(i)*rhs_bl_DEIM(:,i));
 % end
-% 
-% % f3 = B.' * rhs;
-% alpha3 = K3\f3;
-% u_DEIM = B * alpha3;
-% toc
+
+f3 = B.' * rhs;
+alpha3 = K3\f3;
+u_DEIM = B * alpha3;
+toc
 
 
 %% calculate differences
-ut       = u_truth(1:length(Sol_Vel));
-%urb      = u_RB(1:length(Sol_Vel));
+%ut       = u_truth1(1:length(Sol_Vel));
+u_lamem  = sol_lamem(1:length(Sol_Vel));
+urb      = u_RB(1:length(Sol_Vel));
 urb2     = u_RB2(1:length(Sol_Vel));
-% uDEIM    = u_DEIM(1:length(Sol_Vel));
+uDEIM    = u_DEIM(1:length(Sol_Vel));
 % uRB_diff = max(ut-urb2);
 
 %% ========= plot velocities =====================================================
@@ -184,11 +221,12 @@ figure(1)
 % thruth solution
 subplot(2,3,1)
 sgtitle('y - velocity in xz plane');
-[V3d_t] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, ut,'y','xz');
+[V3d_t] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, u_lamem,'z','xy');
 x     = linspace(0,coordx,nel_x);
 y     = linspace(0,coordz,nel_z);
 [X,Y] = meshgrid(x,y);
 pcolor(X,Y,V3d_t(:,:,14).'); colorbar
+
 shading interp;
 title('thruth solution');
 xlabel('x');
@@ -196,7 +234,7 @@ ylabel('z');
    
 % RB velocity solution
 subplot(2,3,2)
-[V3d_RB] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, urb2,'y','xz');
+[V3d_RB] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, urb2,'z','xy');
 x     = linspace(0,coordx,nel_x);
 y     = linspace(0,coordz,nel_z);
 [X,Y] = meshgrid(x,y);
@@ -206,17 +244,17 @@ title('RB solution');
 xlabel('x');
 ylabel('z');
     
-% % DEIM solution
-% subplot(2,3,3)
-% [V3d_DEIM] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, uDEIM,'y','xz');
-% x     = linspace(0,coordx,nel_x);
-% y     = linspace(0,coordz,nel_z);
-% [X,Y] = meshgrid(x,y);
-% pcolor(X,Y,V3d_DEIM(:,:,14).'); colorbar
-% shading interp;
-% title('DEIM solution');
-% xlabel('x');
-% ylabel('z');
+% DEIM solution
+subplot(2,3,3)
+[V3d_DEIM] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, uDEIM,'z','xy');
+x     = linspace(0,coordx,nel_x);
+y     = linspace(0,coordz,nel_z);
+[X,Y] = meshgrid(x,y);
+pcolor(X,Y,V3d_DEIM(:,:,14).'); colorbar
+shading interp;
+title('RB with DEIM');
+xlabel('x');
+ylabel('z');
     
 % difference truth/RB
 subplot(2,3,4)
@@ -229,27 +267,27 @@ title('difference btw thruth & RB');
 xlabel('x');
 ylabel('z');
     
-% % difference truth/DEIM
-% subplot(2,3,5)
-% diff_3D = V3d_t-V3d_DEIM;
-% %diff_3D = diff_3D/max(max(V_3d_t(:,:,14)));
-% [X,Y] = meshgrid(x,y);
-% pcolor(X,Y,diff_3D(:,:,14).'); colorbar
-% shading interp;
-% title('difference btw thruth & DEIM');
-% xlabel('x');
-% ylabel('z');
-%     
-% % difference RB/DEIM
-% subplot(2,3,6)
-% diff_3D = V3d_RB-V3d_DEIM;
-% %diff_3D = diff_3D/max(max(V_3d_t(:,:,14)));
-% [X,Y] = meshgrid(x,y);
-% pcolor(X,Y,diff_3D(:,:,14).'); colorbar
-% shading interp;
-% title('difference btw RB & DEIM');
-% xlabel('x');
-% ylabel('z');
+% difference truth/DEIM
+subplot(2,3,5)
+diff_3D = V3d_t-V3d_DEIM;
+%diff_3D = diff_3D/max(max(V_3d_t(:,:,14)));
+[X,Y] = meshgrid(x,y);
+pcolor(X,Y,diff_3D(:,:,14).'); colorbar
+shading interp;
+title('difference btw thruth & DEIM');
+xlabel('x');
+ylabel('z');
+    
+% difference RB/DEIM
+subplot(2,3,6)
+diff_3D = V3d_RB-V3d_DEIM;
+%diff_3D = diff_3D/max(max(V_3d_t(:,:,14)));
+[X,Y] = meshgrid(x,y);
+pcolor(X,Y,diff_3D(:,:,14).'); colorbar
+shading interp;
+title('difference btw RB & DEIM');
+xlabel('x');
+ylabel('z');
 
 %% plot residual   
 % plot max residual after adding a basis function

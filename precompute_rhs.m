@@ -23,7 +23,7 @@ m = n_vx-(2*n_xy);
 % assemble matrix with affine decomposition of rhs (wo rho)
 rhs_blank = sparse(n,m);
 for i = 1:m
-    rhs_blank((n_vx+n_vy+n_xy + i),i) = -g/2;
+    rhs_blank((n_vx+n_vy+n_xy + i),i) = g/2;
     i
 end
 

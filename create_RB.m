@@ -8,48 +8,71 @@
 % output:
 % B     --> reduced basis
 
-function [B,res, res_max, ETA, RHO] = create_RB (nel_x, nel_y, nel_z,par1,par2,tol)
+function [B, res_max, ETA, RHO] = create_RB (nel_x, nel_y, nel_z,g,par1,par2,tol)
 
 %initialization
 err       = 100;
 loc1      = 1;    % choosing first paramter of par as first guess
 loc2      = 1;    % choosing first paramter of par as first guess
+%locmax    = [];
 B         = [];   % initialize basis B
 ETA       = [];   % initialize basis eta
 RHO       = [];   % initialize basis rho
 it        = 0;
 res_max   = []; % vector to store maximal errors
+%singit    = 0;
+
+%% variables for calculating rhs
+n_nz    = (nel_x*nel_y*(nel_z-1));
+n_xy    = nel_x*nel_y;
+
+ % total number of velocity nodes in the mesh
+n_velx = (nel_x+1)*nel_y*nel_z;
+n_vely = (nel_y+1)*nel_x*nel_z;
+n_velz = (nel_z+1)*nel_x*nel_y;
+n_vel  = n_velx + n_vely + n_velz; % total number of all velocity points
+
+% pressure nodes
+n_p = nel_x * nel_y * nel_z;
+
+%total nodes
+N = n_vel+n_p;
+
+% rhs wo rho
+g_fac = g/2;
+
 
 %% greedy algorithm
 while err > tol
+    
+    %if singit == 0
     
     disp(['basis no. ',num2str(it)]);
     it = it +1 ;
 
     %% create truth solution and add it to basis
     % create Jacobian and rhs vector solution
-    %[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par2(loc2))]);
-    [temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect2.dat -eta[1] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
+    [t1, t2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect2.dat -eta[1] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
     
     % read data 
-    A   =  sparse(PetscBinaryRead('Matrices/Ass_A.bin'));
-    M   =  sparse(PetscBinaryRead('Matrices/Ass_M.bin'));
-    rhs =  sparse(PetscBinaryRead('Matrices/rhs.bin'));
-    eta =  PetscBinaryRead('Matrices/eta.bin');
-    rho =  PetscBinaryRead('Matrices/rho.bin');
+    eta       =  PetscBinaryRead('Matrices/eta.bin');
+    rho       =  PetscBinaryRead('Matrices/rho.bin');
+    sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
     
     ETA = [ETA eta];   % enrich eta basis
     RHO = [RHO rho];   % enrich rho basis
     
-    % creating truth solution
-    [Sol_T,Sol_Vel,Sol_P,VV,VP,PV,PP] = solve_stokes(A,M,rhs,nel_x, nel_y, nel_z);
-
-    Sol_T = zeros(length(A),1) + Sol_T;
-    B = [B Sol_T];     % enrich reduced basis
-    %B = orth(B);
+    %Sol_T = zeros(length(A),1) + Sol_T;
+    B = [B sol_lamem];     % enrich reduced basis
+    
+%     if mod(it,1) == 0
+%     B = orth(B);
+%     end
 
     res_vec  = [];     % clear residual vector
 
+    %end
+    
     %% evaluate argmax of parameter space
     it2 = 0;
     it3 = 0;
@@ -60,19 +83,36 @@ while err > tol
 
             it3 = it3 +1 ;
             disp(['parameter loop: ',num2str(((it3)/((length(par1)*(length(par2)))))*100),'%']);
-
-
+ 
             % create Jacobian and rhs vector solution
-            %[temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -eta[0] ', num2str(par1(k1)),' -eta[1] ', num2str(par2(k2))]);
-            [temp1, temp2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect2.dat -eta[1] ', num2str(par1(k1)),' -rho[1] ', num2str(par2(k2))]);
-
-            % read data 
-               % read data 
+                 
+            % ,' -only_matrix'
+            [t1, t2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect2.dat -eta[1] ', num2str(par1(k1)),' -rho[1] ', num2str(par2(k2)),' -only_matrix']);
+            
             A   =  sparse(PetscBinaryRead('Matrices/Ass_A.bin'));
             M   =  sparse(PetscBinaryRead('Matrices/Ass_M.bin'));
-            rhs =  sparse(PetscBinaryRead('Matrices/rhs.bin'));
-            J = A - M;
+            rho =  PetscBinaryRead('Matrices/rho.bin');
+                  
+            % extract Jacobian
+            J   = A - M;
+            
+            % collect block matrixes
+            VV = J(1:n_vel,1:n_vel);
+            PV = J(1:n_vel,n_vel+1:end);
 
+            % calculate rhs
+            rho_i = zeros(n_nz,1);
+
+            for i = 1:n_nz
+                rho_i(i) = (rho(i) + rho(i+(n_xy)));
+            end
+            
+            rhs = sparse(N,1);
+
+            for i = 1:n_velz-(2*n_xy)
+                rhs(n_velx+n_vely+n_xy+i) = rho_i(i)*g_fac;
+            end
+            
             %=============================================================
             % create RB with residual over whole domain
             %=============================================================
@@ -80,20 +120,48 @@ while err > tol
             % solve RB
             K = B.' * (J) * B;
             f = B.' * rhs;
-            alpha = K\f;
-            Sol_RB = B * alpha;
+            detK = det(K);
+            
+%             if detK < 0.001
+%                 maxres = 0;
+%             else
+                
+                %singit = 0;
+                alpha = K\f;
+                Sol_RB = B * alpha;
 
-            % access error --> global residual is used as an error estimator
-            res = rhs - (J * Sol_RB);            % calculate residual
+
+                % access error --> global residual is used as an error estimator
+                res = rhs(1:n_vel) - (VV * Sol_RB(1:n_vel)) - (PV * Sol_RB(n_vel+1:end));
+                maxres = max(abs(res));
+            
+            %end
+            
             disp(['**********************']);
-            disp(['res = ', num2str(max(abs(res)))]);
+            disp(['res = ', num2str(maxres)]);
             disp(['**********************']);
-            res_vec = [res_vec max(abs(res))];   % irgendeine coole norm über das residual     
+            res_vec = [res_vec maxres]; 
+                      
         end
-
+  
     end
-
-    [err, loc] = max(abs(res_vec)); % store max. error and location of max. error
+     
+%     if singit == 1
+%         break;
+%     end
+%     
+%     if max(abs(res_vec)) == 0    
+%         B = orth(B);
+%         singit = 1;
+%     end
+    
+    % locate old maximum and zero it out
+%     if it > 1
+%     locmax = [locmax loc];
+%     end
+%     res_vec(locmax) = 0;
+    [err, loc] = max(res_vec); % store max. error and location of max. error
+    
     disp(['==========================================================']);
     disp(['max. error ',num2str(err), ' for parameter no. ',num2str(loc)]);
     disp(['==========================================================']);
@@ -112,4 +180,4 @@ end
 disp(['==================================================================================']);
 disp(['reduced basis created with greedy algorithm!! total number of basis funtions ',num2str(it)]);
 disp(['==================================================================================']);
-
+end
