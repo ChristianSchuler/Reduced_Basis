@@ -217,7 +217,7 @@ toc
 u_lamem  = sol_lamem(1:length(Sol_Vel));
 urb      = u_RB(1:length(Sol_Vel));
 urb2     = u_RB2(1:length(Sol_Vel));
-uDEIM    = u_DEIM(1:length(Sol_Vel));
+%uDEIM    = u_DEIM(1:length(Sol_Vel));
 % uRB_diff = max(ut-urb2);
 
 %% ========= plot velocities =====================================================
@@ -240,7 +240,7 @@ ylabel('z');
    
 % RB velocity solution
 subplot(2,3,2)
-[V3d_RB] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, urb2,'z','xy');
+[V3d_RB] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, urb,'z','xy');
 x     = linspace(0,coordx,nel_x);
 y     = linspace(0,coordz,nel_z);
 [X,Y] = meshgrid(x,y);
@@ -252,7 +252,7 @@ ylabel('z');
     
 % DEIM solution
 subplot(2,3,3)
-[V3d_DEIM] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, uDEIM,'z','xy');
+[V3d_DEIM] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, urb2,'z','xy');
 x     = linspace(0,coordx,nel_x);
 y     = linspace(0,coordz,nel_z);
 [X,Y] = meshgrid(x,y);
