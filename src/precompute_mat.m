@@ -1,5 +1,5 @@
 % precompute matrixes for reduced basis application
-function [PMats] = precompute_mat (preMat, B, nel_x,nel_y,nel_z, mode, U)
+function [PMats] = precompute_mat (lamem, input, preMat, B, nel_x,nel_y,nel_z, mode, U)
 
 %% initialization
 % dimension of reduced basis
@@ -15,7 +15,7 @@ N       = n_p+((nel_x+1)*(nel_y+1)*nel_z)+((nel_x+1)*nel_y*(nel_z+1))+(nel_x*(ne
 N       = N+2;
 
 %% collect all decompositionj matrices (usually many --> N!!)
-[t1, t2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -dump_decomposition_matrices']);
+[t1, t2] = system([lamem,' -ParamFile ../', input, ' -dump_decomposition_matrices']);
 
 % assemble matrix
 zrows   =  sparse(PetscBinaryRead('Matrices/zrows.bin'));
@@ -30,6 +30,7 @@ B_t     =  B.';
 
 %% without DEIM
 if mode == 0
+    tic
     PMats   = zeros(m,m,N);
     for i = 1:N-2
         A_ass = sparse(n_vis+n_p,n_vis+n_p);
@@ -53,13 +54,15 @@ diagonal(zrows)  = 1;
 D                = diag(diagonal);
 A_ass            = A_ass + D;
 PMats(:,:,end)   = B_t * A_ass * B;
-
+    disp('precompute matrix components'); 
+    toc
 
 
 %% with DEIM
 elseif mode == 1
-        dim_DEIM = length(U(1,:));
-        PMats    = zeros(m,m,dim_DEIM+2);
+    tic
+    dim_DEIM = length(U(1,:));
+    PMats    = zeros(m,m,dim_DEIM+2);
         
     for j = 1:dim_DEIM
                 
@@ -73,13 +76,12 @@ elseif mode == 1
         
             % multiply with reduced basis 
             Mi = Mi + U(i,j)*(B_t * A_ass * B);
-
-            % multiply by reduced basis
-            i
-            j
+            
          end
             PMats(:,:,j) = Mi; 
     end
+    disp('precompute matrix components with DEIM'); 
+    toc
     
 % pressure and velocity divergence submatrix
 A_ass                          = sparse(n_vis+n_p,n_vis+n_p);    

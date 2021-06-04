@@ -1,15 +1,13 @@
 % extracts all decomposition Matrices and dumps a 3D sparse element
-function [preMat] = extract_preMat (nel_x,nel_y,nel_z)
+function [preMat] = extract_preMat (lamem, input, nel_x,nel_y,nel_z)
 
-
+tic
 % number of pressure points / number of nodes
 n_p     =  nel_x*nel_y*nel_z;   % number of pressure nodes
-% dimension of velocity matrices
-n_vis   = ((nel_x+1)*nel_y*nel_z)+(nel_x*(nel_y+1)*nel_z)+(nel_x*nel_y*(nel_z+1));
 % number of dumped decomposition matrices
 N       = n_p+((nel_x+1)*(nel_y+1)*nel_z)+((nel_x+1)*nel_y*(nel_z+1))+(nel_x*(nel_y+1)*(nel_z+1));
 
-[t1, t2] = system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect.dat -dump_decomposition_matrices']);
+[t1, t2] = system([lamem,' -ParamFile ../', input, ' -dump_decomposition_matrices']);
 
 % assemble matrix
 zrows   =  sparse(PetscBinaryRead('Matrices/zrows.bin'));
@@ -19,12 +17,11 @@ points = [];
 vals = [];
 for i = 1:N
     
-    tic
+
     % load decomposition matrices and multiply by corresponding eta value
     preMat = sparse(PetscBinaryRead(['Matrices/Vis',num2str(i),'.bin']));
     [k,j,s] = find(preMat);
-        i
-    nump = length(k)
+    nump = length(k);
     for m = 1:nump
           
         if (ismember(k(m),zrows) == 0)  
@@ -40,9 +37,11 @@ for i = 1:N
         end
          
     end      
-    toc
+
 end
 
 preMat = ndSparse.build(points ,vals);
 
+disp('extract dumped matrices and put it in sparse 3D structure:'); 
+toc
 end

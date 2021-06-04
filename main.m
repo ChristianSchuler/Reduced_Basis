@@ -1,8 +1,15 @@
 clear all, clc
+
 % add path to LaMEM matlab directory
 addpath('/home/chris/software/LaMEM/matlab')
-addpath('/home/chris/Desktop/MA/RB_Stokes')
+% path to src folder
+addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/src');
+% path to ndSparse package
 addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/ndSparse');
+% path to LaMEM executable
+lamem = '"/home/chris/software/LaMEM/bin/opt/LaMEM"';
+% LaMEM input file
+input = '"FallingBlock_mono_PenaltyDirect2.dat"';
 
 % create 'Matrices' folder or first delete it if it already exists
 if not(isfolder('Matrices'))
@@ -25,6 +32,7 @@ coordz = 1;
 %% ======= graviational accleration =======================================
 g = -1; % acceleration in z direction; assuming that acceleration of other directions is 0
 
+
 %% ======== adjust RB parameters ==========================================
 % viscosity of block
 st   = 10;  % smallest parameter value
@@ -38,55 +46,43 @@ en   = 10; % largest parameter value
 n    = 1;  % parameter spacing
 par2 = linspace(st,en,n);
 
-
+tic
 %% ======== reduced basis routine =========================================
-[B, res_max, ETA, RHO] = create_RB(nel_x, nel_y, nel_z,g,par1,par2,1e-3);
+[B, res_max, ETA, RHO] = create_RB(lamem, input, nel_x, nel_y, nel_z,g,par1,par2,1e-3);
 %B = orth(B);
 
 %% extract decomposition matrices
-preMat = extract_preMat (nel_x,nel_y,nel_z);
+preMat = extract_preMat(lamem, input, nel_x,nel_y,nel_z);
 
 %% ======== precompute matrixes from Jacobian =============================
 U       = [];
-M       = precompute_mat(preMat, B, nel_x, nel_y, nel_z, 0, U);
+M       = precompute_mat(lamem, input, preMat, B, nel_x, nel_y, nel_z, 0, U);
 
 %% ======== precomputed Jacobian matrixes with DEIM =======================
 % apply DEIM to eta basis
 ETA      = orth(ETA);      % orthonormalize ETA matrix; important elsewise matrix tends to be singular
 [U,P,p]  = DEIM(ETA);
 eta_DEIM = inv(P.'*U) * P.';
-
-M_DEIM   = precompute_mat(preMat, B, nel_x, nel_y, nel_z, 1, U);
-
+M_DEIM   = precompute_mat(lamem, input, preMat, B, nel_x, nel_y, nel_z, 1, U);
 
 %% ======= DEIM with rhs ==================================================
-% this method holds for rhs where only the gravitational potential matters 
-n_vx = ((nel_x+1)*nel_y*nel_z);
-n_vy = (nel_x*(nel_y+1)*nel_z);
-n_vz = (nel_x*nel_y*(nel_z+1));
-n_p  = (nel_x*nel_y*nel_z);
-n    = n_vx + n_vy + n_vz + n_p;
-n_xy = nel_x*nel_y;
-RHO_i = zeros(n,length(RHO(1,:)));
-n_nz    = (nel_x*nel_y*(nel_z-1));
-for j = 1:length(RHO(1,:))
-    for i = 1:n_nz
-        RHO_i((n_vx+n_vy+n_xy + i),j) = (RHO(i,j) + RHO(i+(n_xy),j));
-    end
-end
+% this method holds for rhs if only the gravitational potential matters 
+RHO_i = interpol_rho(nel_x, nel_y, nel_z, RHO);
 
 RHO_i    = orth(RHO_i);      % orthonormalize ETA matrix; important elsewise matrix tends to be singular
 [U,P,p]  = DEIM(RHO_i);
 rho_DEIM = inv(P.'*U) * P.';
 
-[rhs_bl]      = precompute_rhs(B, nel_x, nel_y, nel_z, g , 0, U);
-[rhs_bl_DEIM] = precompute_rhs(B, nel_x, nel_y, nel_z, g , 1, U);
+rhs_bl      = precompute_rhs(B, nel_x, nel_y, nel_z, g , 0, U);
+rhs_bl_DEIM = precompute_rhs(B, nel_x, nel_y, nel_z, g , 1, U);
 
+disp('reduced basis offline computations took:'); 
+toc
 %% ================= check solutions ======================================
 % create truth solution
 eta = 66;
 rho = 10;
-system(['/home/chris/software/LaMEM/bin/opt/LaMEM -ParamFile ../FallingBlock_mono_PenaltyDirect2.dat -eta[1] ', num2str(eta),' -rho[1] ', num2str(rho)]);
+[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[1] ', num2str(eta),' -rho[1] ', num2str(rho)]);
 
 % read data 
 A         =  PetscBinaryRead('Matrices/Ass_A.bin');
@@ -95,6 +91,8 @@ rho       =  PetscBinaryRead('Matrices/rho.bin');
 sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
    
 n_nz    = (nel_x*nel_y*(nel_z-1));
+n_vy = (nel_x*(nel_y+1)*nel_z);
+n_vx = ((nel_x+1)*nel_y*nel_z);
 n_xy    = nel_x*nel_y;
 rho_i = zeros(n_nz,1);
 
@@ -219,6 +217,8 @@ urb      = u_RB(1:length(Sol_Vel));
 urb2     = u_RB2(1:length(Sol_Vel));
 uDEIM    = u_DEIM(1:length(Sol_Vel));
 % uRB_diff = max(ut-urb2);
+
+%rmdir('Matrices','s');
 
 %% ========= plot velocities =====================================================
 
