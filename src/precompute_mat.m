@@ -15,7 +15,7 @@ N       = n_p+((nel_x+1)*(nel_y+1)*nel_z)+((nel_x+1)*nel_y*(nel_z+1))+(nel_x*(ne
 N       = N+2;
 
 %% collect all decompositionj matrices (usually many --> N!!)
-[t1, t2] = system([lamem,' -ParamFile ../', input, ' -dump_decomposition_matrices']);
+[t1, t2] = system([lamem,' -ParamFile ', input, ' -dump_decomposition_matrices']);
 
 % assemble matrix
 zrows   =  sparse(PetscBinaryRead('Matrices/zrows.bin'));
@@ -76,7 +76,6 @@ elseif mode == 1
         
             % multiply with reduced basis 
             Mi = Mi + U(i,j)*(B_t * A_ass * B);
-            
          end
             PMats(:,:,j) = Mi; 
     end
@@ -87,7 +86,7 @@ elseif mode == 1
 A_ass                          = sparse(n_vis+n_p,n_vis+n_p);    
 A_ass(end-n_p+1:end,1:end-n_p) = divV;
 A_ass(1:end-n_p,end-n_p+1:end) = divP;
-PMats(:,:,end-1)                 = B_t * A_ass * B;
+PMats(:,:,end-1)               = B_t * A_ass * B;
 
 % boundary condition matrix
 A_ass            = sparse(n_vis+n_p,n_vis+n_p); 

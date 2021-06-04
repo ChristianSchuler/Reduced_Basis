@@ -1,6 +1,6 @@
 % function to compute rhs
 
-function [rhs_final] = precompute_rhs (B, nel_x, nel_y, nel_z, g, mode, U)
+function [rhs_final] = precompute_rhs (B, nel_x, nel_y, nel_z, g, mode, U, ip)
 
 tic 
 
@@ -23,7 +23,6 @@ for i = 1:m
     rhs_blank((n_vx+n_vy+n_xy + i),i) = g/2;
 end
 
-% multiply rhs_blank with reduced basis
 B_t       =  B.';
 
 if mode == 0
@@ -31,7 +30,6 @@ if mode == 0
     rhs_final = sparse(dB,m);
     
     for i = 1:m
-        
     rhs_final(:,i) = B_t * rhs_blank(:,i); 
     end
 
@@ -46,7 +44,7 @@ elseif mode == 1
         
         for i = 1:m
         
-            rhs_i = rhs_i + U(i,j)* (B_t * rhs_blank(:,m)); 
+            rhs_i = rhs_i + U(n_vx+n_vy+n_xy+i,j)* (B_t * rhs_blank(:,i)); 
         end
         
         rhs_final(:,j) = rhs_i;

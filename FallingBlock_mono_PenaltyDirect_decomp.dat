@@ -80,6 +80,12 @@
 
 # Geometric primitives:
 
+        <SphereStart>
+        phase  = 1
+        center = 0.5 0.5 0.5
+        radius = 0.3
+        <SphereEnd>
+
 	#<BoxStart>
 	#	phase  = 1
 	#	bounds = 0.2 0.8 0.2 0.8 0.2 0.8  # (left, right, front, back, bottom, top)

@@ -40,6 +40,10 @@ N = n_vel+n_p;
 % rhs wo rho
 g_fac = g/2;
 
+inputG      = input;
+inputG(1)   = [];
+inputG(end) = [];
+
 
 %% greedy algorithm
 while err > tol
@@ -49,21 +53,31 @@ while err > tol
 
     %% create truth solution and add it to basis
     % create Jacobian and rhs vector solution
-    [t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[1] ', num2str(par1(loc1)),' -rho[1] ', num2str(par2(loc2))]);
+    %copyfile(['../',inputG],'geometry.dat');
+    copyfile(inputG,'geometry.dat');
+    radius 		= 	par1(loc1);	
+    str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
+    fid=fopen('geometry.dat','a+');
+    fprintf(fid, str);
+    fclose(fid);
+
+    
+     [t1, t2] = system([lamem,' -ParamFile geometry.dat']);
+    %[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par2(loc2))]);
     
     % read data 
     eta       =  PetscBinaryRead('Matrices/eta.bin');
     rho       =  PetscBinaryRead('Matrices/rho.bin');
     sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
     
-    ETA = [ETA eta];   % enrich eta basis
-    RHO = [RHO rho];   % enrich rho basis
+    %ETA = [ETA eta];   % enrich eta basis
+    %RHO = [RHO rho];   % enrich rho basis
     
     B = [B sol_lamem];     % enrich reduced basis
     
-    if mod(it,2) == 0
-    B = orth(B);
-    end
+%     if mod(it,2) == 0
+%     B = orth(B);
+%     end
 
     res_vec  = [];     % clear residual vector
 
@@ -78,13 +92,30 @@ while err > tol
             it2 = it2 +1 ;
             disp(['parameter loop: ',num2str(((it2)/((length(par1)*(length(par2)))))*100),'%']);
  
-            % create Jacobian and rhs vector solution
-                 
-            [t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[1] ', num2str(par1(k1)),' -rho[1] ', num2str(par2(k2)),' -only_matrix']);
+            % create Jacobian and rhs vector solution  
+            copyfile(inputG,'geometry.dat');
+            radius 		= 	par1(k1);	
+            str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
+            fid=fopen('geometry.dat','a+');
+            fprintf(fid, str);
+            fclose(fid);
+
+            [t1, t2] = system([lamem,' -ParamFile geometry.dat -only_matrix']);
+            
+            %[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[0] ', num2str(par1(k1)),' -eta[1] ', num2str(par2(k2)),' -only_matrix']);
             
             A   =  sparse(PetscBinaryRead('Matrices/Ass_A.bin'));
             M   =  sparse(PetscBinaryRead('Matrices/Ass_M.bin'));
             rho =  PetscBinaryRead('Matrices/rho.bin');
+            
+            if (it == 1)
+                
+                eta       =  PetscBinaryRead('Matrices/eta.bin');
+                rho       =  PetscBinaryRead('Matrices/rho.bin');
+                
+                ETA = [ETA eta];   % enrich eta basis
+                RHO = [RHO rho];   % enrich rho basis
+            end
                   
             % extract Jacobian
             J   = A - M;
@@ -113,7 +144,7 @@ while err > tol
             % solve RB
             K = B.' * (J) * B;
             f = B.' * rhs;
-            detK = det(K)
+            detK = det(K);
             
             if detK < 1e-14
                  maxres = 0;
@@ -124,7 +155,6 @@ while err > tol
              % access error --> global residual is used as an error estimator
             res = rhs(1:n_vel) - (VV * Sol_RB(1:n_vel)) - (PV * Sol_RB(n_vel+1:end));
             maxres = max(abs(res));
-            
             end
             
             disp(['**********************']);
@@ -134,6 +164,11 @@ while err > tol
                       
         end
   
+    end
+    
+    if max(res_vec) == 0
+       break;
+       error('reduced basis matrix is singular for every parameter');
     end
      
     [err, loc] = max(res_vec); % store max. error and location of max. error

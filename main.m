@@ -1,5 +1,6 @@
 clear all, clc
 
+%% paths/directories
 % add path to LaMEM matlab directory
 addpath('/home/chris/software/LaMEM/matlab')
 % path to src folder
@@ -10,6 +11,8 @@ addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/ndSparse');
 lamem = '"/home/chris/software/LaMEM/bin/opt/LaMEM"';
 % LaMEM input file
 input = '"FallingBlock_mono_PenaltyDirect2.dat"';
+% LaMEM input file
+input2 = '"FallingBlock_mono_PenaltyDirect_decomp.dat"';
 
 % create 'Matrices' folder or first delete it if it already exists
 if not(isfolder('Matrices'))
@@ -30,59 +33,81 @@ coordy = 1;
 coordz = 1;
 
 %% ======= graviational accleration =======================================
-g = -1; % acceleration in z direction; assuming that acceleration of other directions is 0
-
+g    = -1;   % acceleration in z direction; assuming that acceleration of other directions is 0
+tol  = 1e-4;
 
 %% ======== adjust RB parameters ==========================================
+
 % viscosity of block
-st   = 10;  % smallest parameter value
-en   = 100;  % largest parameter value
-n    = 4; % parameter spacing
+st   = 0.1;  % smallest parameter value
+en   = 0.3;  % largest parameter value
+n    = 100; % parameter spacing
 par1 = linspace(st,en,n);
 
-% density of block
-st   = 10;  % smallest parameter value
-en   = 10; % largest parameter value
-n    = 1;  % parameter spacing
-par2 = linspace(st,en,n);
+par2 = 1;
 
 tic
 %% ======== reduced basis routine =========================================
-[B, res_max, ETA, RHO] = create_RB(lamem, input, nel_x, nel_y, nel_z,g,par1,par2,1e-3);
-%B = orth(B);
+[B, res_max, ETA, RHO] = Reduced_Basis(lamem, input, nel_x, nel_y, nel_z,g,par1,par2,tol);
 
 %% extract decomposition matrices
-preMat = extract_preMat(lamem, input, nel_x,nel_y,nel_z);
+preMat = extract_preMat(lamem, input2, nel_x,nel_y,nel_z);
 
-%% ======== precompute matrixes from Jacobian =============================
+%% decomposition matrices without DEIM
 U       = [];
-M       = precompute_mat(lamem, input, preMat, B, nel_x, nel_y, nel_z, 0, U);
+ip      = [];
+M       = precompute_mat(lamem, input2, preMat, B, nel_x, nel_y, nel_z, 0, U);
+rhs_bl  = precompute_rhs(B, nel_x, nel_y, nel_z, g , 0, U,ip);
+
 
 %% ======== precomputed Jacobian matrixes with DEIM =======================
 % apply DEIM to eta basis
 ETA      = orth(ETA);      % orthonormalize ETA matrix; important elsewise matrix tends to be singular
 [U,P,p]  = DEIM(ETA);
 eta_DEIM = inv(P.'*U) * P.';
-M_DEIM   = precompute_mat(lamem, input, preMat, B, nel_x, nel_y, nel_z, 1, U);
+M_DEIM   = precompute_mat(lamem, input2, preMat, B, nel_x, nel_y, nel_z, 1, U);
 
-%% ======= DEIM with rhs ==================================================
 % this method holds for rhs if only the gravitational potential matters 
-RHO_i = interpol_rho(nel_x, nel_y, nel_z, RHO);
+RHO_i    = interpol_rho(nel_x, nel_y, nel_z, RHO);
 
-RHO_i    = orth(RHO_i);      % orthonormalize ETA matrix; important elsewise matrix tends to be singular
-[U,P,p]  = DEIM(RHO_i);
-rho_DEIM = inv(P.'*U) * P.';
+RHO_i      = orth(RHO_i);  % orthonormalize ETA matrix; important elsewise matrix tends to be singular
+[U,P,p]    = DEIM(RHO_i);
+[ip, col] = find(P);
+rho_DEIM   = inv(P.'*U) * P.';
 
-rhs_bl      = precompute_rhs(B, nel_x, nel_y, nel_z, g , 0, U);
-rhs_bl_DEIM = precompute_rhs(B, nel_x, nel_y, nel_z, g , 1, U);
+rhs_bl_DEIM = precompute_rhs(B, nel_x, nel_y, nel_z, g , 1, U, ip);
 
 disp('reduced basis offline computations took:'); 
 toc
+% 
+% % create 'Matrices' folder or first delete it if it already exists
+% if not(isfolder('RB_components'))
+%     mkdir('RB_components');
+% else
+%     rmdir('RB_components','s');
+%     mkdir('RB_components');
+% end
+
+
+
 %% ================= check solutions ======================================
 % create truth solution
-eta = 66;
-rho = 10;
-[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[1] ', num2str(eta),' -rho[1] ', num2str(rho)]);
+% eta = 66;
+% rho = 10;
+% [t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[1] ', num2str(eta),' -rho[1] ', num2str(rho)]);
+
+inputG      = input;
+inputG(1)   = [];
+inputG(end) = [];
+
+
+copyfile(inputG,'geometry.dat');
+radius 		= 	0.24;	
+str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
+fid=fopen('geometry.dat','a+');
+fprintf(fid, str);
+fclose(fid);
+[t1, t2] = system([lamem,' -ParamFile geometry.dat']);
 
 % read data 
 A         =  PetscBinaryRead('Matrices/Ass_A.bin');
@@ -94,24 +119,8 @@ n_nz    = (nel_x*nel_y*(nel_z-1));
 n_vy = (nel_x*(nel_y+1)*nel_z);
 n_vx = ((nel_x+1)*nel_y*nel_z);
 n_xy    = nel_x*nel_y;
+n_p     =  nel_x*nel_y*nel_z;
 rho_i = zeros(n_nz,1);
-
-for i = 1:n_nz
-    rho_i(i) = (rho(i) + rho(i+(n_xy)));
-end
-
-rho_i_deim = zeros(n,1);
-
-for i = 1:n_nz
-    rho_i_deim((n_vx+n_vy+n_xy + i)) = (rho(i) + rho(i+(n_xy)));
-end
-
-% rhs wo rho
-g_fac = g/2;
-
-% variables for calculating rhs
-n_nz    = (nel_x*nel_y*(nel_z-1));
-n_xy    = nel_x*nel_y;
 
  % total number of velocity nodes in the mesh
 n_velx = (nel_x+1)*nel_y*nel_z;
@@ -124,6 +133,20 @@ n_p = nel_x * nel_y * nel_z;
 
 %total nodes
 N = n_vel+n_p;
+
+for i = 1:n_nz
+    rho_i(i) = (rho(i) + rho(i+(n_xy)));
+end
+
+rho_i_deim = zeros(N,1);
+
+for i = 1:n_nz
+    rho_i_deim((n_vx+n_vy+n_xy + i)) = (rho(i) + rho(i+(n_xy)));
+end
+
+% rhs wo rho
+g_fac = g/2;
+
 % calculate rhs
             rho_i = zeros(n_nz,1);
 
@@ -133,7 +156,7 @@ N = n_vel+n_p;
             
             rhs = sparse(N,1);
 
-            for i = 1:n_velz-(2*n_xy)
+            for i = 1:(n_velz-(2*n_xy))
                 rhs(n_velx+n_vely+n_xy+i) = rho_i(i)*g_fac;
             end
 
@@ -175,7 +198,6 @@ for i = 1:N_R
     f2 = f2 + (rho_i(i)*rhs_bl(:,i));
 end
 
-%f2 = B.' * -rhs;
 alpha2 = K2\(f2);
 u_RB2 = B * alpha2;
 toc
@@ -194,18 +216,15 @@ for i = 1:N_K
     K3 = K3 + (ct_eta(i)*M_DEIM(:,:,i));  
 end
 
+% assemble rhs
+N_R    = length(rhs_bl_DEIM(1,:));
+f3     = sparse(m,1);
+ct_rho = rho_DEIM*rho_i_deim;
+for i = 1:N_R
+    f3 = f3 + (ct_rho(i)*rhs_bl_DEIM(:,i));
+end
 
-
-% % assemble rhs
-% N_R    = length(rhs_bl_DEIM(1,:));
-% f3     = sparse(m,1);
-% ct_rho = rho_DEIM*rho_i_deim;
-% for i = 1:N_R
-%     f3 = f3 + (ct_rho(i)*rhs_bl_DEIM(:,i));
-% end
-
-f3 = B.' * rhs;
-alpha3 = K3\f3;
+alpha3 = K3\-f3;
 u_DEIM = B * alpha3;
 toc
 
@@ -303,4 +322,12 @@ grid on;
 ylabel('max residual');
 xlabel('number of basis functions');
 
-    
+
+
+
+
+
+
+
+
+

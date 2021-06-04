@@ -7,7 +7,8 @@ n_p     =  nel_x*nel_y*nel_z;   % number of pressure nodes
 % number of dumped decomposition matrices
 N       = n_p+((nel_x+1)*(nel_y+1)*nel_z)+((nel_x+1)*nel_y*(nel_z+1))+(nel_x*(nel_y+1)*(nel_z+1));
 
-[t1, t2] = system([lamem,' -ParamFile ../', input, ' -dump_decomposition_matrices']);
+
+[t1, t2] = system([lamem,' -ParamFile ', input, ' -dump_decomposition_matrices']);
 
 % assemble matrix
 zrows   =  sparse(PetscBinaryRead('Matrices/zrows.bin'));
@@ -22,6 +23,8 @@ for i = 1:N
     preMat = sparse(PetscBinaryRead(['Matrices/Vis',num2str(i),'.bin']));
     [k,j,s] = find(preMat);
     nump = length(k);
+    i
+    k
     for m = 1:nump
           
         if (ismember(k(m),zrows) == 0)  

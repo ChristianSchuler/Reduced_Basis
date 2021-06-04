@@ -11,6 +11,8 @@ lamem = '"/home/chris/software/LaMEM/bin/opt/LaMEM"';
 % LaMEM input file
 input = '"FallingBlock_mono_PenaltyDirect2.dat"';
 
+
+
 % create 'Matrices' folder or first delete it if it already exists
 if not(isfolder('Matrices'))
     mkdir('Matrices');
@@ -36,8 +38,8 @@ g = -1; % acceleration in z direction; assuming that acceleration of other direc
 %% ======== adjust RB parameters ==========================================
 % viscosity of block
 st   = 10;  % smallest parameter value
-en   = 100;  % largest parameter value
-n    = 4; % parameter spacing
+en   = 1000;  % largest parameter value
+n    = 10; % parameter spacing
 par1 = linspace(st,en,n);
 
 % density of block
@@ -48,11 +50,10 @@ par2 = linspace(st,en,n);
 
 tic
 %% ======== reduced basis routine =========================================
-[B, res_max, ETA, RHO] = create_RB(lamem, input, nel_x, nel_y, nel_z,g,par1,par2,1e-3);
-%B = orth(B);
+[B, res_max, ETA, RHO] = Reduced_Basis(lamem, input, nel_x, nel_y, nel_z,g,par1,par2,1e-3);
 
 %% extract decomposition matrices
-preMat = extract_preMat (lamem, input, nel_x,nel_y,nel_z);
+preMat = extract_preMat(lamem, input, nel_x,nel_y,nel_z);
 
 %% ======== precompute matrixes from Jacobian =============================
 U       = [];
@@ -78,11 +79,12 @@ rhs_bl_DEIM = precompute_rhs(B, nel_x, nel_y, nel_z, g , 1, U);
 
 disp('reduced basis offline computations took:'); 
 toc
+
 %% ================= check solutions ======================================
 % create truth solution
 eta = 66;
 rho = 10;
-system([lamem,' -ParamFile ../', input, ' -eta[1] ', num2str(eta),' -rho[1] ', num2str(rho)]);
+[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[1] ', num2str(eta),' -rho[1] ', num2str(rho)]);
 
 % read data 
 A         =  PetscBinaryRead('Matrices/Ass_A.bin');
@@ -91,6 +93,8 @@ rho       =  PetscBinaryRead('Matrices/rho.bin');
 sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
    
 n_nz    = (nel_x*nel_y*(nel_z-1));
+n_vy = (nel_x*(nel_y+1)*nel_z);
+n_vx = ((nel_x+1)*nel_y*nel_z);
 n_xy    = nel_x*nel_y;
 rho_i = zeros(n_nz,1);
 
@@ -216,7 +220,7 @@ urb2     = u_RB2(1:length(Sol_Vel));
 uDEIM    = u_DEIM(1:length(Sol_Vel));
 % uRB_diff = max(ut-urb2);
 
-rmdir('Matrices','s');
+%rmdir('Matrices','s');
 
 %% ========= plot velocities =====================================================
 

@@ -17,3 +17,7 @@
 /rhs.bin
 /rhs.bin.info
 /Matrices
+/src/Timestep_00000000_0.00000000e+00/FB_test.pvtr
+/src/Timestep_00000000_0.00000000e+00/FB_test_p00000000.vtr
+/src/Timestep_00000000_0.00000000e+00/FB_test_phase.pvtr
+/src/Timestep_00000000_0.00000000e+00/FB_test_phase_p000000.vtr
