@@ -24,6 +24,7 @@ for i = 1:m
 end
 
 B_t       =  B.';
+B_t       = sparse(B_t);
 
 if mode == 0
     

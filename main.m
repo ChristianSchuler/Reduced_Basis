@@ -1,4 +1,4 @@
-clear all, clc
+%clear all, clc
 
 %% paths/directories
 % add path to LaMEM matlab directory
@@ -7,6 +7,8 @@ addpath('/home/chris/software/LaMEM/matlab')
 addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/src');
 % path to ndSparse package
 addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/ndSparse');
+% path to mtimessx package
+addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/mtimesx_20110223');
 % path to LaMEM executable
 lamem = '"/home/chris/software/LaMEM/bin/opt/LaMEM"';
 % LaMEM input file
@@ -21,6 +23,7 @@ else
     rmdir('Matrices','s');
     mkdir('Matrices');
 end
+
 
 %% ======== number of elements ============================================
 nel_x  = 16;
@@ -38,27 +41,36 @@ tol  = 1e-4;
 
 %% ======== adjust RB parameters ==========================================
 
-% viscosity of block
-st   = 0.1;  % smallest parameter value
-en   = 0.3;  % largest parameter value
-n    = 100; % parameter spacing
+% st   = 0.1;  % smallest parameter value
+% en   = 0.3;  % largest parameter value
+% n    = 50; % parameter spacing
+% par1 = linspace(st,en,n);
+
+st   = 10;  % smallest parameter value
+en   = 60;  % largest parameter value
+n    = 10; % parameter spacing
 par1 = linspace(st,en,n);
 
-par2 = 1;
+st   = 10;  % smallest parameter value
+en   = 60;  % largest parameter value
+n    = 10; % parameter spacing
+par2 = linspace(st,en,n);
 
 tic
 %% ======== reduced basis routine =========================================
+tic
 [B, res_max, ETA, RHO] = Reduced_Basis(lamem, input, nel_x, nel_y, nel_z,g,par1,par2,tol);
-
+toc
+%{
 %% extract decomposition matrices
 preMat = extract_preMat(lamem, input2, nel_x,nel_y,nel_z);
+preMat(:,:,end) = [];  % last matrix was only built for scaling --> dump it
 
 %% decomposition matrices without DEIM
 U       = [];
 ip      = [];
-M       = precompute_mat(lamem, input2, preMat, B, nel_x, nel_y, nel_z, 0, U);
+M      = precompute_mat(lamem, input2, preMat, B, nel_x, nel_y, nel_z, 0, U);
 rhs_bl  = precompute_rhs(B, nel_x, nel_y, nel_z, g , 0, U,ip);
-
 
 %% ======== precomputed Jacobian matrixes with DEIM =======================
 % apply DEIM to eta basis
@@ -67,7 +79,6 @@ ETA      = orth(ETA);      % orthonormalize ETA matrix; important elsewise matri
 eta_DEIM = inv(P.'*U) * P.';
 M_DEIM   = precompute_mat(lamem, input2, preMat, B, nel_x, nel_y, nel_z, 1, U);
 
-% this method holds for rhs if only the gravitational potential matters 
 RHO_i    = interpol_rho(nel_x, nel_y, nel_z, RHO);
 
 RHO_i      = orth(RHO_i);  % orthonormalize ETA matrix; important elsewise matrix tends to be singular
@@ -87,8 +98,8 @@ toc
 %     rmdir('RB_components','s');
 %     mkdir('RB_components');
 % end
-
-
+% 
+% save('saveM_DEIM.mat','M_DEIM');
 
 %% ================= check solutions ======================================
 % create truth solution
@@ -102,7 +113,7 @@ inputG(end) = [];
 
 
 copyfile(inputG,'geometry.dat');
-radius 		= 	0.24;	
+radius 		= 	0.12;	
 str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
 fid=fopen('geometry.dat','a+');
 fprintf(fid, str);
@@ -177,11 +188,11 @@ alpha = K\f;
 u_RB = B * alpha;
 toc
 
+eta   = PetscBinaryRead('Matrices/eta.bin');
 % assemble matrix with precomputed matrices
 disp('direct solve with reduced basis by assembling the matrix with precomputed matrices:');
 tic
 m     = length(B(1,:));
-eta   = PetscBinaryRead('Matrices/eta.bin');
 eta   = [eta; 1; 1];
 N_K     = length(M(1,1,:));
 K2    = sparse(m,m);
@@ -198,15 +209,15 @@ for i = 1:N_R
     f2 = f2 + (rho_i(i)*rhs_bl(:,i));
 end
 
-alpha2 = K2\(f2);
+alpha2 = K2\f2;
 u_RB2 = B * alpha2;
 toc
 
+eta   =  PetscBinaryRead('Matrices/eta.bin');
 % assemble matrix with precomputed  DEIM matrices
 disp('direct solve with reduced basis with DEIM:');
 tic
 m     = length(B(1,:));
-eta   =  PetscBinaryRead('Matrices/eta.bin');
 % assemble matrix K
 N_K     = length(M_DEIM(1,1,:));
 K3      = sparse(m,m);
@@ -224,7 +235,7 @@ for i = 1:N_R
     f3 = f3 + (ct_rho(i)*rhs_bl_DEIM(:,i));
 end
 
-alpha3 = K3\-f3;
+alpha3 = K3\f3;
 u_DEIM = B * alpha3;
 toc
 
@@ -245,7 +256,7 @@ uDEIM    = u_DEIM(1:length(Sol_Vel));
 figure(1)
 % thruth solution
 subplot(2,3,1)
-sgtitle('y - velocity in xz plane');
+sgtitle('z - velocity in xy plane');
 [V3d_t] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, u_lamem,'z','xy');
 x     = linspace(0,coordx,nel_x);
 y     = linspace(0,coordz,nel_z);
@@ -321,6 +332,9 @@ semilogy(res_max,'*-');
 grid on;
 ylabel('max residual');
 xlabel('number of basis functions');
+
+%}
+
 
 
 

@@ -54,18 +54,26 @@ while err > tol
     %% create truth solution and add it to basis
     % create Jacobian and rhs vector solution
     %copyfile(['../',inputG],'geometry.dat');
-    copyfile(inputG,'geometry.dat');
-    radius 		= 	par1(loc1);	
-    str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
-    fid=fopen('geometry.dat','a+');
-    fprintf(fid, str);
-    fclose(fid);
+%     copyfile(inputG,'geometry.dat');
+%     radius 		= 	par1(loc1);	
+%     str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
+%     fid=fopen('geometry.dat','a+');
+%     fprintf(fid, str);
+%     fclose(fid);
 
-    
-     [t1, t2] = system([lamem,' -ParamFile geometry.dat']);
+%      [t1, t2] = system([lamem,' -ParamFile geometry.dat']);
     %[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par2(loc2))]);
     
+    
+    %create partitioning file
+    system(['mpiexec -n 4 ' , lamem,' -ParamFile Subduction3D.dat -mode save_grid']);
+    % create markers
+    setup3D(par1(loc1),par2(loc2));
+    % run simulation
+    system([lamem,' -ParamFile Subduction3D.dat']);
+    
     % read data 
+    
     eta       =  PetscBinaryRead('Matrices/eta.bin');
     rho       =  PetscBinaryRead('Matrices/rho.bin');
     sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
@@ -93,16 +101,21 @@ while err > tol
             disp(['parameter loop: ',num2str(((it2)/((length(par1)*(length(par2)))))*100),'%']);
  
             % create Jacobian and rhs vector solution  
-            copyfile(inputG,'geometry.dat');
-            radius 		= 	par1(k1);	
-            str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
-            fid=fopen('geometry.dat','a+');
-            fprintf(fid, str);
-            fclose(fid);
-
-            [t1, t2] = system([lamem,' -ParamFile geometry.dat -only_matrix']);
-            
+%             copyfile(inputG,'geometry.dat');
+%             radius 		= 	par1(k1);	
+%             str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
+%             fid=fopen('geometry.dat','a+');
+%             fprintf(fid, str);
+%             fclose(fid);
+%             [t1, t2] = system([lamem,' -ParamFile geometry.dat -only_matrix']);
             %[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[0] ', num2str(par1(k1)),' -eta[1] ', num2str(par2(k2)),' -only_matrix']);
+            
+            %create partitioning file
+            [t1,t2] = system(['mpiexec -n 4 ' , lamem,' -ParamFile Subduction3D.dat -mode save_grid']);
+            % create markers
+            setup3D(par1(k1),par2(k2));
+            % run simulation
+            [t1,t2] = system([lamem,' -ParamFile Subduction3D.dat -only_matrix']);
             
             A   =  sparse(PetscBinaryRead('Matrices/Ass_A.bin'));
             M   =  sparse(PetscBinaryRead('Matrices/Ass_M.bin'));

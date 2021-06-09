@@ -1,5 +1,5 @@
 % precompute matrixes for reduced basis application
-function [PMats] = precompute_mat (lamem, input, preMat, B, nel_x,nel_y,nel_z, mode, U)
+function [PMats] = precompute_mat (lamem, input, preMat, B, nel_x,nel_y,nel_z, mode, U) %#codegen
 
 %% initialization
 % dimension of reduced basis
@@ -25,6 +25,9 @@ A   =  PetscBinaryRead('Matrices/Ass_A.bin');
 divV    = sparse(A(end-n_p+1:end,1:end-n_p));
 divP    = sparse(A(1:end-n_p,end-n_p+1:end));
 B_t     =  B.';
+B_t     = sparse(B_t);
+B       = sparse(B);
+
 
 
 
@@ -32,13 +35,13 @@ B_t     =  B.';
 if mode == 0
     tic
     PMats   = zeros(m,m,N);
-    for i = 1:N-2
-        A_ass = sparse(n_vis+n_p,n_vis+n_p);
-
-        A_ass(1:n_vis,1:n_vis) = preMat(:,:,i);
+   
+    for i = 1:N-2  
         
+        temp = (B_t * preMat(:,:,i)) * B;
+     
         % multiply by reduced basis
-        PMats(:,:,i) = B_t * A_ass * B;
+        PMats(:,:,i) = temp;
     end
 
 % pressure and velocity divergence submatrix
@@ -60,6 +63,7 @@ PMats(:,:,end)   = B_t * A_ass * B;
 
 %% with DEIM
 elseif mode == 1
+    U = sparse(U);
     tic
     dim_DEIM = length(U(1,:));
     PMats    = zeros(m,m,dim_DEIM+2);
@@ -68,14 +72,13 @@ elseif mode == 1
                 
         Mi = sparse(m,m);
                 
-        for i = 1:N-2
-                    
-            A_ass = sparse(n_vis+n_p,n_vis+n_p);% extract pressure and velocity divergence matrices from assembled A matrix
+        for i = 1:N-2    
+                   
+            temp = (B_t * preMat(:,:,i)) * B;
 
-            A_ass(1:n_vis,1:n_vis) = preMat(:,:,i);
-        
             % multiply with reduced basis 
-            Mi = Mi + U(i,j)*(B_t * A_ass * B);
+            temp = U(i,j)*temp;
+            Mi   = Mi + temp;   
          end
             PMats(:,:,j) = Mi; 
     end
