@@ -27,7 +27,7 @@
 	inc_dt    = 0.1   # time step increment per time step (fraction of unit)
 	CFL       = 0.5   # CFL (Courant-Friedrichs-Lewy) criterion
 	CFLMAX    = 0.5   # CFL criterion for elasticity
-	nstep_max = 1000  # maximum allowed number of steps (lower bound: time_end/dt_max)
+	nstep_max = 1  # maximum allowed number of steps (lower bound: time_end/dt_max)
 	nstep_out = 5     # save output every n steps
 	nstep_rdb = 100   # save restart database every n steps
 
@@ -37,15 +37,15 @@
 #===============================================================================
 
 # Number of cells for all segments
-	nel_x = 128
-	nel_y = 64
-	nel_z = 32
+	nel_x = 32
+	nel_y = 32
+	nel_z = 16
 
 # Coordinates of all segments (including start and end points)
 
-	coord_x = 0 1500
-	coord_y =  0    1000
-	coord_z = -660  40
+	coord_x = 0 750
+	coord_y =  0    900
+	coord_z = -300  40
 	
 #===============================================================================
 # Free surface
@@ -94,11 +94,15 @@
 #===============================================================================
 # Solver options
 #===============================================================================
-        SolverType 			=	multigrid 		# solver [direct or multigrid]
-	MGLevels 			=	3			# number of MG levels [default=3]
-	MGSweeps 			=	10			# number of MG smoothening steps per level [default=10]
-	MGSmoother 			=	chebyshev 	# type of smoothener used [chebyshev or jacobi]
-	MGCoarseSolver 		=	mumps 		# coarse grid solver [direct/mumps/superlu_dist or redundant - more options specifiable through the command-line options -crs_ksp_type & -crs_pc_type]
+        #SolverType 			=	multigrid 		# solver [direct or multigrid]
+	#MGLevels 			=	3			# number of MG levels [default=3]
+	#MGSweeps 			=	10			# number of MG smoothening steps per level [default=10]
+	#MGSmoother 			=	chebyshev 	# type of smoothener used [chebyshev or jacobi]
+	#MGCoarseSolver 		=	mumps 		# coarse grid solver [direct/mumps/superlu_dist or redundant - more options specifiable through the command-line options -crs_ksp_type & -crs_pc_type]
+
+        SolverType 		=	direct 			# solver [direct or multigrid]
+	DirectSolver 	=	mumps			# mumps/superlu_dist/pastix	
+	DirectPenalty 	=	1e5
 
 
 #===============================================================================
@@ -253,11 +257,29 @@
 	
 <PetscOptionsStart>
 
-	# LINEAR & NONLINEAR SOLVER OPTIONS
-	-snes_ksp_ew
-	
+        # LINEAR & NONLINEAR SOLVER OPTIONS
+	-snes_type ksponly # no nonlinear solver
 
-	-js_ksp_monitor # display how the inner iterations converge
+	# Jacobian (linear) outer KSP
+	-js_ksp_type gmres
+	-js_ksp_max_it 20
+	-js_ksp_converged_reason
+ 	-js_ksp_monitor
+	-js_ksp_rtol 1e-8
+	-js_ksp_atol 1e-10
+#	-js_ksp_view
+
+	# Direct solver with penalty method
+	-pcmat_type    mono
+	-pcmat_pgamma  1e5	# penalty parameter
+	-jp_type       user
+	-jp_pc_type    lu
+
+
+	# LINEAR & NONLINEAR SOLVER OPTIONS
+	#-snes_ksp_ew
+	
+	#-js_ksp_monitor # display how the inner iterations converge
 	
         -objects_dump
 	#-dump_decomposition_matrices
