@@ -26,8 +26,8 @@ end
 
 
 %% ======== number of elements ============================================
-nel_x  = 16;
-nel_y  = 16;
+nel_x  = 32;
+nel_y  = 32;
 nel_z  = 16;
 
 %% ======== length of the domain in x,y and z direction ===================
@@ -36,7 +36,7 @@ coordy = 1;
 coordz = 1;
 
 %% ======= graviational accleration =======================================
-g    = -1;   % acceleration in z direction; assuming that acceleration of other directions is 0
+g    = -9.81;   % acceleration in z direction; assuming that acceleration of other directions is 0
 tol  = 1e-4;
 
 %% ======== adjust RB parameters ==========================================
@@ -46,14 +46,14 @@ tol  = 1e-4;
 % n    = 50; % parameter spacing
 % par1 = linspace(st,en,n);
 
-st   = 10;  % smallest parameter value
-en   = 60;  % largest parameter value
+st   = 50;  % smallest parameter value
+en   = 200;  % largest parameter value
 n    = 10; % parameter spacing
 par1 = linspace(st,en,n);
 
-st   = 10;  % smallest parameter value
-en   = 60;  % largest parameter value
-n    = 10; % parameter spacing
+st   = 100;  % smallest parameter value
+en   = 200;  % largest parameter value
+n    = 8; % parameter spacing
 par2 = linspace(st,en,n);
 
 tic
@@ -100,31 +100,40 @@ toc
 % end
 % 
 % save('saveM_DEIM.mat','M_DEIM');
-
+%}
 %% ================= check solutions ======================================
-% create truth solution
+%create truth solution
 % eta = 66;
 % rho = 10;
 % [t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[1] ', num2str(eta),' -rho[1] ', num2str(rho)]);
+% 
+% inputG      = input;
+% inputG(1)   = [];
+% inputG(end) = [];
 
-inputG      = input;
-inputG(1)   = [];
-inputG(end) = [];
 
+% copyfile(inputG,'geometry.dat');
+% radius 		= 	0.12;	
+% str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
+% fid=fopen('geometry.dat','a+');
+% fprintf(fid, str);
+% fclose(fid);
+% [t1, t2] = system([lamem,' -ParamFile geometry.dat']);
 
-copyfile(inputG,'geometry.dat');
-radius 		= 	0.12;	
-str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
-fid=fopen('geometry.dat','a+');
-fprintf(fid, str);
-fclose(fid);
-[t1, t2] = system([lamem,' -ParamFile geometry.dat']);
-
-% read data 
+setup3D(164,127);
+% run simulation
+[t1,t2] = system([lamem,' -ParamFile Subduction3D.dat']);
+    
+[t1,t2] = system([lamem,' -ParamFile Subduction3D.dat -only_matrix']);
+%read data 
 A         =  PetscBinaryRead('Matrices/Ass_A.bin');
 M_lamem   =  PetscBinaryRead('Matrices/Ass_M.bin');
+rhs       =  -PetscBinaryRead('Matrices/rhs.bin');
 rho       =  PetscBinaryRead('Matrices/rho.bin');
 sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
+
+J = A-M_lamem;
+u_sol = J\rhs;
    
 n_nz    = (nel_x*nel_y*(nel_z-1));
 n_vy = (nel_x*(nel_y+1)*nel_z);
@@ -172,12 +181,12 @@ g_fac = g/2;
             end
 
 % % Solve linear system
-[Sol,Sol_Vel,Sol_P,VV,VP,PV,PP,J] = solve_stokes(A,M_lamem,rhs,nel_x, nel_y, nel_z);
+%[Sol,Sol_Vel,Sol_P,VV,VP,PV,PP,J] = solve_stokes(A,M_lamem,rhs,nel_x, nel_y, nel_z);
 
 % solve RB
 disp('direct solve of truth problem:');
 tic 
-u_truth1 = J\(-rhs);
+u_truth1 = J\(rhs);
 toc
 
 disp('direct solve with reduced basis:');
@@ -242,8 +251,8 @@ toc
 
 %% calculate differences
 %ut       = u_truth1(1:length(Sol_Vel));
-u_lamem  = sol_lamem(1:length(Sol_Vel));
-urb      = u_RB(1:length(Sol_Vel));
+u_lamem  = sol_lamem(1:n_vel);
+urb      = u_RB(1:n_vel);
 urb2     = u_RB2(1:length(Sol_Vel));
 uDEIM    = u_DEIM(1:length(Sol_Vel));
 % uRB_diff = max(ut-urb2);
@@ -259,9 +268,11 @@ subplot(2,3,1)
 sgtitle('z - velocity in xy plane');
 [V3d_t] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, u_lamem,'z','xy');
 x     = linspace(0,coordx,nel_x);
-y     = linspace(0,coordz,nel_z);
+y     = linspace(0,coordz,nel_y);
 [X,Y] = meshgrid(x,y);
+
 pcolor(X,Y,V3d_t(:,:,14).'); colorbar
+
 
 shading interp;
 title('thruth solution');
@@ -270,16 +281,32 @@ ylabel('z');
    
 % RB velocity solution
 subplot(2,3,2)
-[V3d_RB] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, urb2,'z','xy');
+[V3d_RB] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, urb,'z','xy');
 x     = linspace(0,coordx,nel_x);
-y     = linspace(0,coordz,nel_z);
+y     = linspace(0,coordz,nel_y);
 [X,Y] = meshgrid(x,y);
 pcolor(X,Y,V3d_RB(:,:,14).'); colorbar
+
+
 shading interp;
 title('RB solution');
 xlabel('x');
 ylabel('z');
-    
+
+% difference truth/RB
+subplot(2,3,3)
+diff_3D = V3d_t-V3d_RB;
+%diff_3D = diff_3D/max(max(V_3d_t(:,:,14)));
+[X,Y] = meshgrid(x,y);
+pcolor(X,Y,diff_3D(:,:,14).'); colorbar
+
+shading interp;
+title('difference btw thruth & RB');
+xlabel('x');
+ylabel('z');
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
 % DEIM solution
 subplot(2,3,3)
 [V3d_DEIM] = arrange_vel (nel_x, nel_y, nel_z, coordx, coordy, coordz, uDEIM,'z','xy');
@@ -325,6 +352,9 @@ title('difference btw RB & DEIM');
 xlabel('x');
 ylabel('z');
 
+%}
+
+
 %% plot residual   
 % plot max residual after adding a basis function
 figure(2)
@@ -333,7 +363,6 @@ grid on;
 ylabel('max residual');
 xlabel('number of basis functions');
 
-%}
 
 
 

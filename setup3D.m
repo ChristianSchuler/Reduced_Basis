@@ -1,6 +1,5 @@
 % Create a 2D subduction setup with particles & temperature
-
-function [] = setup3D (SubductionAngle1,SubductionAngle2)%clear, clc
+function [] = setup3D (l_x,l_y)
 
 % Tell the code where the LaMEM matlab routines are 
 addpath /home/chris/software/LaMEM/matlab
@@ -68,16 +67,25 @@ dmlitho = dcrusto+50;    % depth oceanic mantle lithosphere  %% must not exceed 
 dcrust  = 20;        % depth continental crust middle of the plate
 dmlith  = dcrust+50; % depth mantle lithosphere
 
-p_x     = 250;        % starting point of horizontal slab part in x direction
-p_y     = 250;        % " y "
-d_x     = 1000;          % length of horizontal slab part in x direction
-d_y     = 500;           % " y "
+m_x = 375;
+m_y = 450;
+
+p_x = m_x - l_x;
+p_y = m_y - l_y;
+d_x = 2*l_x;
+d_y = 2*l_y;
+
+
+%p_x     = 250;        % starting point of horizontal slab part in x direction
+%p_y     = 250;        % " y "
+%d_x     = 1000;          % length of horizontal slab part in x direction
+%d_y     = 500;           % " y "
 
 % inner continental plate
-p_xc    = 250;        % starting point of horizontal slab part in x direction
-p_yc    = 350;        % " y "
-d_xc    = 1000;          % length of horizontal slab part in x direction
-d_yc    = 300;           % " y "
+% p_xc    = p_x;        % starting point of horizontal slab part in x direction
+% p_yc    = 350;        % " y "
+% d_xc    = 1000;          % length of horizontal slab part in x direction
+% d_yc    = 300;           % " y "
 
 lslab1 =  200;        % length slab 1
 lslab2 =  200;        % length slab 2
@@ -89,8 +97,8 @@ d_weak = 6; % depth
 h_weak = 50; % horizontal extension in y direction
 
 % properties of subducting slab
-%SubductionAngle1     =   40;     % Subduction angle slab 1
-%SubductionAngle2     =   20;     % Subduction angle slab 1
+SubductionAngle1     =   40;     % Subduction angle slab 1
+SubductionAngle2     =   20;     % Subduction angle slab 1
 ThermalAge_Myrs     =   50;     % Thermal age of the slab in Myrs
 ThicknessCrust      =   10;
 
@@ -162,11 +170,11 @@ BoxSides            =   [p_y+d_y p_y+lslab2+d_y p_x p_x+wslab2  -d_weak 0];  % [
 
 
 %% inner continental plate
-BoxSides            =   [p_xc (p_xc+d_xc) p_yc (p_yc+d_yc) -dmlith 0];  % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 3,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle);                         % Set slab to mantle lithosphere phase
-
-BoxSides            =   [p_xc (p_xc+d_xc) p_yc (p_yc+d_yc) -dcrust 0]; % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 2);               % Add crust (will override the mantle lithosphere phase above)
+% BoxSides            =   [p_xc (p_xc+d_xc) p_yc (p_yc+d_yc) -dmlith 0];  % [Left Right Front Back Bottom Top] of the box
+% [Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 3,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle);                         % Set slab to mantle lithosphere phase
+% 
+% BoxSides            =   [p_xc (p_xc+d_xc) p_yc (p_yc+d_yc) -dcrust 0]; % [Left Right Front Back Bottom Top] of the box
+% [Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 2);               % Add crust (will override the mantle lithosphere phase above)
 
 
 %% Set Mantle Lithosphere for mantle points that have temperatures < 1200 Celcius

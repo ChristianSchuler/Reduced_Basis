@@ -66,16 +66,16 @@ while err > tol
     
     
     %create partitioning file
-    system(['mpiexec -n 4 ' , lamem,' -ParamFile Subduction3D.dat -mode save_grid']);
+    %system(['mpiexec -n 4 ' , lamem,' -ParamFile Subduction3D.dat -mode save_grid']);
     % create markers
     setup3D(par1(loc1),par2(loc2));
     % run simulation
-    system([lamem,' -ParamFile Subduction3D.dat']);
+    [t1,t2] = system([lamem,' -ParamFile Subduction3D.dat']);
     
     % read data 
     
-    eta       =  PetscBinaryRead('Matrices/eta.bin');
-    rho       =  PetscBinaryRead('Matrices/rho.bin');
+    %eta       =  PetscBinaryRead('Matrices/eta.bin');
+    %rho       =  PetscBinaryRead('Matrices/rho.bin');
     sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
     
     %ETA = [ETA eta];   % enrich eta basis
@@ -100,6 +100,14 @@ while err > tol
             it2 = it2 +1 ;
             disp(['parameter loop: ',num2str(((it2)/((length(par1)*(length(par2)))))*100),'%']);
  
+            % create 'Matrices' folder or first delete it if it already exists
+            if not(isfolder('Matrices'))
+            mkdir('Matrices');
+            else
+            rmdir('Matrices','s');
+             mkdir('Matrices');
+            end
+                        
             % create Jacobian and rhs vector solution  
 %             copyfile(inputG,'geometry.dat');
 %             radius 		= 	par1(k1);	
@@ -111,7 +119,7 @@ while err > tol
             %[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[0] ', num2str(par1(k1)),' -eta[1] ', num2str(par2(k2)),' -only_matrix']);
             
             %create partitioning file
-            [t1,t2] = system(['mpiexec -n 4 ' , lamem,' -ParamFile Subduction3D.dat -mode save_grid']);
+            %[t1,t2] = system(['mpiexec -n 4 ' , lamem,' -ParamFile Subduction3D.dat -mode save_grid']);
             % create markers
             setup3D(par1(k1),par2(k2));
             % run simulation
@@ -119,12 +127,16 @@ while err > tol
             
             A   =  sparse(PetscBinaryRead('Matrices/Ass_A.bin'));
             M   =  sparse(PetscBinaryRead('Matrices/Ass_M.bin'));
-            rho =  PetscBinaryRead('Matrices/rho.bin');
+            rhs =  -PetscBinaryRead('Matrices/rhs.bin');
+           
             
             if (it == 1)
-                
+            
                 eta       =  PetscBinaryRead('Matrices/eta.bin');
-                rho       =  PetscBinaryRead('Matrices/rho.bin');
+                eta       =  eta*(1e21);
+
+                rho =  PetscBinaryRead('Matrices/rho.bin');
+                rho =  rho*(1e25);
                 
                 ETA = [ETA eta];   % enrich eta basis
                 RHO = [RHO rho];   % enrich rho basis
@@ -137,19 +149,6 @@ while err > tol
             VV = J(1:n_vel,1:n_vel);
             PV = J(1:n_vel,n_vel+1:end);
 
-            % calculate rhs
-            rho_i = zeros(n_nz,1);
-
-            for i = 1:n_nz
-                rho_i(i) = (rho(i) + rho(i+(n_xy)));
-            end
-            
-            rhs = sparse(N,1);
-
-            for i = 1:n_velz-(2*n_xy)
-                rhs(n_velx+n_vely+n_xy+i) = rho_i(i)*g_fac;
-            end
-            
             %=============================================================
             % create RB with residual over whole domain
             %=============================================================
@@ -159,16 +158,25 @@ while err > tol
             f = B.' * rhs;
             detK = det(K);
             
-            if detK < 1e-14
-                 maxres = 0;
-            else
+%             if detK < 1e-14
+%                  maxres = 0;
+%                  warning('matrix K is close to singular');
+%               Bo = orth(B);
+%               Ko = Bo.' * J * Bo;
+%               fo = Bo.' * rhs;
+%               alphao = Ko\fo;
+%              Sol_RBo = Bo * alphao;
+
+%             else
+                
             alpha = K\f;
             Sol_RB = B * alpha;
+     
 
              % access error --> global residual is used as an error estimator
             res = rhs(1:n_vel) - (VV * Sol_RB(1:n_vel)) - (PV * Sol_RB(n_vel+1:end));
             maxres = max(abs(res));
-            end
+            %end
             
             disp(['**********************']);
             disp(['res = ', num2str(maxres)]);
