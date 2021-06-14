@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<VTKFile type="Collection" version="0.1" byte_order="LittleEndian">
-<Collection>
-	<DataSet timestep="0.000000e+00" file="Timestep_00000000_0.00000000e+00/Subduction3D_FreeSlip_direct.pvtr"/>
-	<DataSet timestep="5.500000e-02" file="Timestep_00000001_5.50000000e-02/Subduction3D_FreeSlip_direct.pvtr"/>
-</Collection>
-</VTKFile>
