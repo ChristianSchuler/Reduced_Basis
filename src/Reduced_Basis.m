@@ -20,30 +20,9 @@ RHO       = [];   % initialize basis rho
 it        = 0;
 res_max   = []; % vector to store maximal errors
 
-
-%% variables for calculating rhs
-n_nz    = (nel_x*nel_y*(nel_z-1));
-n_xy    = nel_x*nel_y;
-
- % total number of velocity nodes in the mesh
-n_velx = (nel_x+1)*nel_y*nel_z;
-n_vely = (nel_y+1)*nel_x*nel_z;
-n_velz = (nel_z+1)*nel_x*nel_y;
-n_vel  = n_velx + n_vely + n_velz; % total number of all velocity points
-
-% pressure nodes
-n_p = nel_x * nel_y * nel_z;
-
-%total nodes
-N = n_vel+n_p;
-
-% rhs wo rho
-g_fac = g/2;
-
-inputG      = input;
-inputG(1)   = [];
-inputG(end) = [];
-
+% inputG      = input;
+% inputG(1)   = [];
+% inputG(end) = [];
 
 %% greedy algorithm
 while err > tol
@@ -53,7 +32,7 @@ while err > tol
 
     %% create truth solution and add it to basis
     % create Jacobian and rhs vector solution
-    %copyfile(['../',inputG],'geometry.dat');
+%     copyfile(['../',inputG],'geometry.dat');
 %     copyfile(inputG,'geometry.dat');
 %     radius 		= 	par1(loc1);	
 %     str = ['<SphereStart>' newline 'phase  = 1' newline 'center = 0.5 0.5 0.5' newline 'radius = ' num2str(radius) newline '<SphereEnd>'];
@@ -61,28 +40,25 @@ while err > tol
 %     fprintf(fid, str);
 %     fclose(fid);
 
-%      [t1, t2] = system([lamem,' -ParamFile geometry.dat']);
-    %[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[0] ', num2str(par1(loc1)),' -eta[1] ', num2str(par2(loc2))]);
-    
-    
+%    [t1, t2] = system([lamem,' -ParamFile geometry.dat']);
+  
     %create partitioning file
     %system(['mpiexec -n 4 ' , lamem,' -ParamFile Subduction3D.dat -mode save_grid']);
     % create markers
     setup3D(par1(loc1),par2(loc2));
-    % run simulation
+    %run simulation
     [t1,t2] = system([lamem,' -ParamFile Subduction3D.dat']);
     
     % read data 
-    
-    %eta       =  PetscBinaryRead('Matrices/eta.bin');
-    %rho       =  PetscBinaryRead('Matrices/rho.bin');
+%     eta       =  PetscBinaryRead('Matrices/eta.bin');
+%     rho       =  PetscBinaryRead('Matrices/rho.bin');
     sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
     
     %ETA = [ETA eta];   % enrich eta basis
     %RHO = [RHO rho];   % enrich rho basis
     
     B = [B sol_lamem];     % enrich reduced basis
-    
+     
 %     if mod(it,2) == 0
 %     B = orth(B);
 %     end
@@ -99,15 +75,7 @@ while err > tol
 
             it2 = it2 +1 ;
             disp(['parameter loop: ',num2str(((it2)/((length(par1)*(length(par2)))))*100),'%']);
- 
-            % create 'Matrices' folder or first delete it if it already exists
-            if not(isfolder('Matrices'))
-            mkdir('Matrices');
-            else
-            rmdir('Matrices','s');
-             mkdir('Matrices');
-            end
-                        
+                         
             % create Jacobian and rhs vector solution  
 %             copyfile(inputG,'geometry.dat');
 %             radius 		= 	par1(k1);	
@@ -115,8 +83,7 @@ while err > tol
 %             fid=fopen('geometry.dat','a+');
 %             fprintf(fid, str);
 %             fclose(fid);
-%             [t1, t2] = system([lamem,' -ParamFile geometry.dat -only_matrix']);
-            %[t1, t2] = system([lamem,' -ParamFile ../', input, ' -eta[0] ', num2str(par1(k1)),' -eta[1] ', num2str(par2(k2)),' -only_matrix']);
+%             [t1, t2] = system([lamem,' -ParamFile geometry.dat -only_matrix']);       
             
             %create partitioning file
             %[t1,t2] = system(['mpiexec -n 4 ' , lamem,' -ParamFile Subduction3D.dat -mode save_grid']);
@@ -156,27 +123,14 @@ while err > tol
             % solve RB
             K = B.' * (J) * B;
             f = B.' * rhs;
-            detK = det(K);
-            
-%             if detK < 1e-14
-%                  maxres = 0;
-%                  warning('matrix K is close to singular');
-%               Bo = orth(B);
-%               Ko = Bo.' * J * Bo;
-%               fo = Bo.' * rhs;
-%               alphao = Ko\fo;
-%              Sol_RBo = Bo * alphao;
-
-%             else
-                
+                         
             alpha = K\f;
             Sol_RB = B * alpha;
      
 
-             % access error --> global residual is used as an error estimator
+            % access error --> global residual is used as an error estimator
             res = rhs(1:n_vel) - (VV * Sol_RB(1:n_vel)) - (PV * Sol_RB(n_vel+1:end));
             maxres = max(abs(res));
-            %end
             
             disp(['**********************']);
             disp(['res = ', num2str(maxres)]);
