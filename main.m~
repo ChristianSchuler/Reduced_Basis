@@ -1,14 +1,16 @@
-clear all, clc
+%clear all, clc
 
 %% paths/directories
-% path to external packages
-addpath(genpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/external_packages'));
-% path to LaMEM executable
-lamem = '"/home/chris/software/LaMEM/bin/opt/LaMEM"';
 % add path to LaMEM matlab directory
 addpath('/home/chris/software/LaMEM/matlab')
 % path to src folder
 addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/src');
+% path to ndSparse package
+addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/ndSparse');
+% path to mtimessx package
+addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/mtimesx_20110223');
+% path to LaMEM executable
+lamem = '"/home/chris/software/LaMEM/bin/opt/LaMEM"';
 % LaMEM input file
 input = '"Subduction2D.dat"';
 
@@ -24,7 +26,6 @@ end
 nel_x  = 32;
 nel_y  = 2;
 nel_z  = 32;
-
 %% ======== length of the domain in x,y and z direction ===================
 coordx = 700;
 coordy = 20;
@@ -35,34 +36,44 @@ g    = -9.81;   % acceleration in z direction; assuming that acceleration of oth
 
 %% ======== adjust RB parameters ==========================================
 % define parameters/their ranges and distribution
+
 % parameter 1
-st   = 20;  % smallest parameter value
-en   = 60;  % largest parameter value
-n    = 8; % parameter spacing
+st   = 80;  % smallest parameter value
+en   = 180;  % largest parameter value
+n    = 20; % parameter spacing
 par1 = linspace(st,en,n);
 % parameter 2
-st   = 20;  % smallest parameter value
-en   = 60;  % largest parameter value
-n    = 8; % parameter spacing
+st   = 40;  % smallest parameter value
+en   = 40;  % largest parameter value
+n    = 1; % parameter spacing
 par2 = linspace(st,en,n);
-
-% allcomb creates all possible combinations of input parameters
-par = allcomb(par1,par2);
+% parameter 3
+st   = 40;  % smallest parameter value
+en   = 40;  % largest parameter value
+n    = 1; % parameter spacing
+par3 = linspace(st,en,n);
+% parameter 4
+st   = 40;  % smallest parameter value
+en   = 40;  % largest parameter value
+n    = 1; % parameter spacing
+par4 = linspace(st,en,n);
 
 %% ======== reduced basis routine =========================================
-tol  = 1e-1;    % tolerance for Greedy algorithm
+tic
+tol  = 1e-4;    % tolerance for Greedy algorithm
 n    = 10;      % orthogonalization of basis every n steps
-[B, res_max, ETA, RHO] = Reduced_Basis(lamem, input, nel_x, nel_y, nel_z,par,tol,n);
+[B, res_max, ETA, RHO] = Reduced_Basis(lamem, input, nel_x, nel_y, nel_z,g,par1,par2,par3,par4,tol);
+toc
 
-% %% ======== extract decomposition matrices ================================
-% preMat = extract_preMat(lamem, input, nel_x,nel_y,nel_z);
-% preMat(:,:,end) = [];  % last matrix was only built for scaling --> dump it
-% 
-% %% decomposition matrices without DEIM
-% U       = [];
-% ip      = [];
-% M      = precompute_mat(lamem, input2, preMat, B, nel_x, nel_y, nel_z, 0, U);
-% rhs_bl  = precompute_rhs(B, nel_x, nel_y, nel_z, g , 0, U,ip);
+% %% extract decomposition matrices
+preMat = extract_preMat(lamem, input, nel_x,nel_y,nel_z);
+preMat(:,:,end) = [];  % last matrix was only built for scaling --> dump it
+
+%% decomposition matrices without DEIM
+U       = [];
+ip      = [];
+M      = precompute_mat(lamem, input2, preMat, B, nel_x, nel_y, nel_z, 0, U);
+rhs_bl  = precompute_rhs(B, nel_x, nel_y, nel_z, g , 0, U,ip);
 
 %{
 %% ======== precomputed Jacobian matrixes with DEIM =======================
@@ -348,7 +359,7 @@ toc
 
 
 %% plot residual   
-%% plot max residual after adding a basis function
+% plot max residual after adding a basis function
 figure(2)
 semilogy(res_max,'*-');
 grid on;

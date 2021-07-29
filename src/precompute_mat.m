@@ -15,7 +15,7 @@ N       = n_p+((nel_x+1)*(nel_y+1)*nel_z)+((nel_x+1)*nel_y*(nel_z+1))+(nel_x*(ne
 N       = N+2;
 
 %% collect all decompositionj matrices (usually many --> N!!)
-[t1, t2] = system([lamem,' -ParamFile ', input, ' -dump_decomposition_matrices']);
+%[t1, t2] = system([lamem,' -ParamFile ', input, ' -dump_decomposition_matrices']);
 
 % assemble matrix
 zrows   =  sparse(PetscBinaryRead('Matrices/zrows.bin'));
@@ -27,9 +27,6 @@ divP    = sparse(A(1:end-n_p,end-n_p+1:end));
 B_t     =  B.';
 B_t     = sparse(B_t);
 B       = sparse(B);
-
-
-
 
 %% without DEIM
 if mode == 0

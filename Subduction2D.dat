@@ -28,7 +28,7 @@
 	CFL       = 0.5   # CFL (Courant-Friedrichs-Lewy) criterion
 	CFLMAX    = 0.5   # CFL criterion for elasticity
 	nstep_max = 1  # maximum allowed number of steps (lower bound: time_end/dt_max)
-	nstep_out = 5     # save output every n steps
+	nstep_out = 10     # save output every n steps
 	nstep_rdb = 100   # save restart database every n steps
 
 
@@ -38,14 +38,14 @@
 
 # Number of cells for all segments
 	nel_x = 32
-	nel_y = 32
-	nel_z = 16
+	nel_y = 2
+	nel_z = 32
 
 # Coordinates of all segments (including start and end points)
 
-	coord_x = 0 750
-	coord_y =  0    900
-	coord_z = -300  40
+	coord_x = 0 700
+	coord_y =  -10    10
+	coord_z = -660  40
 	
 #===============================================================================
 # Free surface
@@ -74,31 +74,31 @@
 #===============================================================================
 
 	gravity        = 0.0 0.0 -9.81  # gravity vector
-	FSSA           = 1.0            # free surface stabilization parameter [0 - 1]
-	init_guess     = 1              # initial guess flag
+	FSSA           = 0.0            # free surface stabilization parameter [0 - 1]
+	init_guess     = 0              # initial guess flag
 
 	p_litho_visc   = 1              # use lithostatic pressure for creep laws
 	p_litho_plast  = 0              # use lithostatic pressure for plasticity			
-	p_lim_plast    = 1              # limit pressure at first iteration for plasticity
+	p_lim_plast    = 0              # limit pressure at first iteration for plasticity
 
-	eta_min        = 1e19           # viscosity upper bound
+	eta_min        = 1e18           # viscosity upper bound
 	eta_max        = 1e23           # viscosity lower limit
 	eta_ref        = 1e21           # reference viscosity (initial guess)
 	DII_ref        = 1e-15          # background (reference) strain-rate
 	
-	min_cohes      = 1e5            # ch lower bound
-	min_fric       = 0.0            # fr lower bound
-	tau_ult        = 5e8            # ultimate yield stress
+	#min_cohes      = 1e5            # ch lower bound
+	#min_fric       = 0.0            # fr lower bound
+	#tau_ult        = 5e8            # ultimate yield stress
 
 	
 #===============================================================================
 # Solver options
 #===============================================================================
-        #SolverType 			=	multigrid 		# solver [direct or multigrid]
-	#MGLevels 			=	3			# number of MG levels [default=3]
-	#MGSweeps 			=	10			# number of MG smoothening steps per level [default=10]
-	#MGSmoother 			=	chebyshev 	# type of smoothener used [chebyshev or jacobi]
-	#MGCoarseSolver 		=	mumps 		# coarse grid solver [direct/mumps/superlu_dist or redundant - more options specifiable through the command-line options -crs_ksp_type & -crs_pc_type]
+ #       SolverType 			=	multigrid 		# solver [direct or multigrid]
+ #       MGLevels 			=	3			# number of MG levels [default=3]#
+#	MGSweeps 			=	10			# number of MG smoothening steps per #level [default=10]
+#	MGSmoother 			=	chebyshev 	# type of smoothener used [chebyshev or #jacobi]
+#	MGCoarseSolver 		=	mumps 		# coarse grid solver [direct/mumps/#superlu_dist or redundant - more options specifiable through the command-line options -crs_ksp_type & -#crs_pc_type]
 
         SolverType 		=	direct 			# solver [direct or multigrid]
 	DirectSolver 	=	mumps			# mumps/superlu_dist/pastix	
@@ -171,13 +171,13 @@
 
 
 	# Strain softening parameters (weaken the crust in the subduction zone)
-	# This affects the speed of teh subduction zone!
-	<SofteningStart>
-		ID   = 0
-		A    = 0.9
-		APS1 = 0.01
-		APS2 = 0.1
-	<SofteningEnd>
+	# This affects the speed of the subduction zone!
+	#<SofteningStart>
+#		ID   = 0
+#		A    = 0.9
+#		APS1 = 0.01
+#		APS2 = 0.1
+#	<SofteningEnd>
 
 
 	# Define properties of sticky air
@@ -193,26 +193,18 @@
 		ID  		= 	1       # phase id
 		
 		rho        	=      3200			        # density [kg/m3]
-		eta             =      1e22
+		eta             =      1e20
 	<MaterialEnd>
 
-	# Define properties of inner continental crust
-	#<MaterialStart>
-	#	ID  = 2 	# phase id
-	#
-	#	rho 		= 	2900 			# density
-	#	eta             =       1e23
-	#<MaterialEnd>
-	
-		# Define properties of inner continental crust
+	 Define properties of inner continental crust
 	<MaterialStart>
 		ID  = 2 	# phase id
 	
-		rho 		= 	3100 			# density
+		rho 		= 	2900 			# density
 		eta             =       1e23
 	<MaterialEnd>
 	
-	
+		
 	# Define properties of mantle lithosphere
 	<MaterialStart>
 		ID  = 3 	# phase id
@@ -226,7 +218,7 @@
 	<MaterialStart>
 		ID  = 4 	# phase id
 	
-		rho 		= 	3100 			# density
+		rho 		= 	3250 			# density
 		eta             =       1e23
 
 	<MaterialEnd>
@@ -235,7 +227,7 @@
 	<MaterialStart>
 		ID  = 5 	# phase id
 	
-		rho 		= 	3100 			# density
+		rho 		= 	3150 			# density
 		eta             =       1e23
 
 	<MaterialEnd>
@@ -244,8 +236,8 @@
 	<MaterialStart>
 		ID  = 6 	# phase id
 	
-		rho 		= 	2600 			# density
-		eta             =       1e18
+		rho 		= 	3250 			# density
+		eta             =       1e19
 
 	<MaterialEnd>
 	
@@ -257,29 +249,59 @@
 	
 <PetscOptionsStart>
 
-        # LINEAR & NONLINEAR SOLVER OPTIONS
-	-snes_type ksponly # no nonlinear solver
+        -snes_type ksponly			# switches off nonlinear iterations
+
+	-js_ksp_monitor # display how the inner iterations converge
+	
+	-js_ksp_rtol 1e-10
+	-js_ksp_atol 1e-12
+
+	# LINEAR & NONLINEAR SOLVER OPTIONS
+	#-snes_ksp_ew
+	# -snes_type ksponly			# switches off nonlinear iterations
+	
+	#-js_ksp_monitor # display how the inner iterations converge
+	
+		# Linesearch options
+	#-snes_linesearch_monitor
+	#-snes_linesearch_type l2 			#Linesearch type (one of) shell basic l2 bt Cp (SNESLineSearchSetType)  [l2 seems to work better with VEP]
+	#-snes_linesearch_maxstep 1.0		# very important to prevent the code from "blowing up"
+	
+	# Jacobian (linear) outer KSP
+	#-js_ksp_type fgmres
+	#-js_ksp_max_it 20
+	#-js_ksp_min_it 4
+	#-js_ksp_converged_reason
+ 	#-js_ksp_monitor
+	#-js_ksp_rtol 1e-6
+	#-js_ksp_atol 1e-8
+	
+	
+        # Stokes Preconditioner
+	#-pstokes mg					# multigrid
+
+
+
+	# LINEAR & NONLINEAR SOLVER OPTIONS
+	#-snes_type ksponly # no nonlinear solver
 
 	# Jacobian (linear) outer KSP
-	-js_ksp_type gmres
-	-js_ksp_max_it 20
-	-js_ksp_converged_reason
- 	-js_ksp_monitor
-	-js_ksp_rtol 1e-8
-	-js_ksp_atol 1e-10
-#	-js_ksp_view
+	#-js_ksp_type gmres
+	#-js_ksp_max_it 10
+	#-js_ksp_converged_reason
+ 	#-js_ksp_monitor
+	#-js_ksp_rtol 1e-8
+	#-js_ksp_atol 1e-10
+ 	#-js_ksp_view
 
 	# Direct solver with penalty method
 	-pcmat_type    mono
+	#-pcmat_no_dev_proj
 	-pcmat_pgamma  1e5	# penalty parameter
 	-jp_type       user
 	-jp_pc_type    lu
 
 
-	# LINEAR & NONLINEAR SOLVER OPTIONS
-	#-snes_ksp_ew
-	
-	#-js_ksp_monitor # display how the inner iterations converge
 	
         -objects_dump
 	#-dump_decomposition_matrices

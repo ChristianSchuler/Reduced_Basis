@@ -66,3 +66,5 @@
 /Subduction3D_FreeSlip_direct_phase.pvd
 /Subduction3D_FreeSlip_direct_surf.pvd
 /VTK_ModelSetup_paraview_binary.vtr
+/test_setups/FB_test.pvd
+/test_setups/FB_test_phase.pvd

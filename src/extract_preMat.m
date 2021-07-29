@@ -10,7 +10,7 @@ n_tot = n_vis + n_p;
 % number of dumped decomposition matrices
 N       = n_p+((nel_x+1)*(nel_y+1)*nel_z)+((nel_x+1)*nel_y*(nel_z+1))+(nel_x*(nel_y+1)*(nel_z+1));
 
-[t1, t2] = system([lamem,' -ParamFile ', input, ' -dump_decomposition_matrices']);
+system([lamem,' -ParamFile ', input, ' -dump_decomposition_matrices']);
 
 % assemble matrix
 zrows   =  sparse(PetscBinaryRead('Matrices/zrows.bin'));
@@ -19,18 +19,22 @@ zrows   =  zrows+1; % Petsc starting indexing at 0, matlab at 1!
 points = [];
 vals = [];
 
+disp('decomp nach matrices vorbei')
+
 for i = 1:N
     % load decomposition matrices and multiply by corresponding eta value
     preMat = sparse(PetscBinaryRead(['Matrices/Vis',num2str(i),'.bin']));
     [k,j,s] = find(preMat);
     nump = length(k);
+   
     for m = 1:nump         
         if (ismember(k(m),zrows) == 0)          
          points = [points; k(m) j(m) i];
          vals   = [vals s(m)];     
         else     
          points = [points; k(m) j(m) i];
-         vals   = [vals 0];           
+         vals   = [vals 0];   
+         
         end      
     end      
 end

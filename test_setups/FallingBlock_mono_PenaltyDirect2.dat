@@ -90,6 +90,12 @@
 	#	coord = 0.25 0.25 0.25   0.75 0.25 0.25   0.75 0.75 0.25   0.25 0.75 0.25   0.25 0.25 0.75   0.75 0.25 0.75   0.75 0.75 0.75   0.25 0.75 0.75
 	#<HexEnd>
 	
+	<SphereStart>
+	phase  = 1
+	center = 0.5 0.5 0.5
+	radius = 0.28
+	<SphereEnd>
+	
 
 #===============================================================================
 # Output
@@ -150,11 +156,11 @@
 
 	-objects_dump
 	#-dump_decomposition_matrices
-	-dump_sol
-	-dump_precondition_matrixes
-	-dump_precondition_matrixes_prefix Ass
-	-dump_rhs
-	-dump_rho
+	#-dump_sol
+	#-dump_precondition_matrixes
+	#-dump_precondition_matrixes_prefix Ass
+	#-dump_rhs
+	#-dump_rho
 	
 <PetscOptionsEnd>
 

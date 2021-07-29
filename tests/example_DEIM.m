@@ -1,4 +1,6 @@
-clear all,clc
+clear all,clc,clf
+
+addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/src');
 
 % see chaturantabut 2010 sec. 3.3.1 for reference
 
@@ -10,17 +12,17 @@ x = linspace(-1,1,100);
 %p_pick = @(st,en) st + rand*(en-st);
 
 % create snapshots
-n = 51;
+n = 101;
 Sn = [];
 par = linspace(1,pi,51);
-for i = 1:n
+for i = 1:51
     %a = test_func(x,p_pick(1,pi));
     a = test_func(x,par(i));
     Sn = [Sn, a.']; % snapshot matrix
 end
 
 % rank
-r = 10;
+r = 12;
 % POD/SVD
 [U,S,V] = svd(Sn,0);
 
@@ -32,13 +34,13 @@ U = U(:,1:r);
 [row, col] = find(P);
 ip = row;             % interpolation points
 
-%plot first six POD bases
-for i= 1:6
-figure(1)
-plot(x,U(:,i));
-hold on
-end
-legend('POD basis 1','POD basis 2','POD basis 3','POD basis 4','POD basis 5','POD basis 6');
+% %plot first six POD bases
+% for i= 1:6
+% figure(1)
+% plot(x,U(:,i));
+% hold on
+% end
+% legend('POD basis 1','POD basis 2','POD basis 3','POD basis 4','POD basis 5','POD basis 6');
 
 ni = 3.1;
 % calculate DEIM approximation of solution of specific parameter
@@ -47,9 +49,12 @@ ct      = i_m * test_func(x,ni).';
 sol_int = U*ct;   % test_func(x,ni) (=ungefaehr) U*ct
 
 figure(2)
-plot(x,test_func(x,ni),x,sol_int,'--','LineWidth',2);
+p = plot(x,test_func(x,ni),x,sol_int,'--','LineWidth',2);
 hold on;
 scatter(x(ip),test_func(x(ip),ni),'filled','red');
-title(['analytical solution vs. DEIM solution with POD rank ', num2str(r)]);
+title(['number of input vectors: ', num2str(r)]);
 legend('analytical','DEIM','DEIM interpolation points');
+%set(gca,'ytick',[])
+
+saveas(gcf,'DEIM_ex_6vec.png');
 
