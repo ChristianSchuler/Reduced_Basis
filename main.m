@@ -11,6 +11,8 @@ addpath('/home/chris/software/LaMEM/matlab')
 addpath('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/src');
 % LaMEM input file
 input = '"Subduction2D.dat"';
+% setup function file
+setup = 'setup2D';
 
 % create 'Matrices' folder or first delete it if it already exists
 if not(isfolder('Matrices'))
@@ -50,15 +52,15 @@ par2 = linspace(st,en,n);
 par = allcomb(par1,par2);
 
 %% ======== reduced basis routine =========================================
-tol  = 1e-1;    % tolerance for Greedy algorithm
+tol  = 1e-2;    % tolerance for Greedy algorithm
 n    = 10;      % orthogonalization of basis every n steps
-[B, res_max, ETA, RHO] = Reduced_Basis(lamem, input, nel_x, nel_y, nel_z,par,tol,n);
+[B, res_max, ETA, RHO] = Reduced_Basis(lamem, input,setup, nel_x, nel_y, nel_z,par,tol,n);
 
 % %% ======== extract decomposition matrices ================================
 % preMat = extract_preMat(lamem, input, nel_x,nel_y,nel_z);
 % preMat(:,:,end) = [];  % last matrix was only built for scaling --> dump it
-% 
-% %% decomposition matrices without DEIM
+ 
+%% decomposition matrices without DEIM
 % U       = [];
 % ip      = [];
 % M      = precompute_mat(lamem, input2, preMat, B, nel_x, nel_y, nel_z, 0, U);

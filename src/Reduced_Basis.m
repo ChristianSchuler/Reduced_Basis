@@ -1,14 +1,20 @@
-% function that creates a reduced basis of parameter space with greedy algorithm
-
+% ======================== Greedy algorithm ===============================
 % input:
-% nel_x --> number of elements
-% par   --> parameter space
-% tol   --> tolerance for greedy algorithm
+% lamem      --> path to LaMEM executable
+% setup      --> setup filename as string
+% input      --> LaMEM input filename
+% nel_x,y,z  --> number of elements
+% par        --> parameter space
+% tol        --> tolerance for greedy algorithm
+% n          --> orthogonalize basis every n steps
 
 % output:
-% B     --> reduced basis
+% B       --> reduced basis
+% res_max --> array of max residualnorm for every parameterloop
+% ETA,RHO --> viscosity/density matrix; every time a truth solution is
+%             added to basis the corresponding eta/rho vectors are dropped
 
-function [B, res_max, ETA, RHO] = Reduced_Basis (lamem, input, nel_x, nel_y, nel_z,par,tol,n)
+function [B, res_max, ETA, RHO] = Reduced_Basis (lamem, input, setup, nel_x, nel_y, nel_z,par,tol,n)
 
 tic
 %initialization
@@ -37,7 +43,7 @@ while err > tol
     %% create truth solution and add it to basis
  
     % create markers
-    setup2D(par(loc,:));
+    feval(setup,par(loc,:));
     %run simulation
     [t1, t2] = system([lamem,' -ParamFile ', input]);
     % read solution 
@@ -67,7 +73,7 @@ while err > tol
           textprogressbar(kp);
 
             % create markers
-             setup2D(par(k,:));
+            feval(setup,par(k,:));
             % run simulation
             [t1,t2] = system([lamem,' -ParamFile ', input, ' -only_matrix']);
             
