@@ -45,7 +45,7 @@ while err > tol
     % create markers
     feval(setup,par(loc,:));
     %run simulation
-    [t1, t2] = system([lamem,' -ParamFile ', input]);
+    [t1,t2] = system([lamem,' -ParamFile ', input]);
     % read solution 
     sol_lamem =  PetscBinaryRead('Matrices/sol.bin');
     eta       =  PetscBinaryRead('Matrices/eta.bin');
@@ -67,10 +67,11 @@ while err > tol
     textprogressbar('parameter loop: ');
     for k = 1:length(par)
        
-        %disp(['parameter loop: ',num2str((k/length(par))*100),'%'])
-        % progressbar for parameter loop
-          kp = (k/length(par))*100;
-          textprogressbar(kp);
+           % progressbar for parameter loop
+           if mod(k,10) == 0
+           kp = (k/length(par))*100;
+           textprogressbar(kp);
+           end
 
             % create markers
             feval(setup,par(k,:));
@@ -88,14 +89,18 @@ while err > tol
             VV = J(1:n_vel,1:n_vel);
             PV = J(1:n_vel,n_vel+1:end);
 
+            Bu = B(1:n_vel,:);
+            rhs_u = rhs(1:n_vel,:);
             %=============================================================
             % create RB with residual over whole domain
             %=============================================================
 
             % solve RB
-            K = B.' * (J) * B;
+            %K = B.' * (J) * B;
+            K = Bu.' * VV * Bu;
             %% K only with viscosity matrixes!!!!
-            f = B.' * rhs;
+            %f = B.' * rhs;
+            f = Bu.' * rhs_u;
                          
             alpha = K\f;
             Sol_RB = B * alpha;
@@ -103,14 +108,15 @@ while err > tol
             % access error --> global residual is used as an error estimator
             res = rhs(1:n_vel) - (VV * Sol_RB(1:n_vel)) - (PV * Sol_RB(n_vel+1:end));
             % maximum absolute value of res (maybe other norm??)
-            maxres = max(abs(res));
-            
+            %maxres = max(abs(res));
+            maxres = norm(res,2);
             %disp('**********************');
             %disp(['res = ', num2str(maxres)]);
             %disp('**********************');
             res_vec = [res_vec maxres];   % vector of residual norm
                         
     end
+  
     textprogressbar('');   
     [err, loc] = max(res_vec); % store max. error and location of max. error
     
@@ -123,13 +129,11 @@ while err > tol
 end
 
 time = toc;
-disp('==================================================================================');
-disp('==============================   Greedy algorithm   ==============================');
-disp('==================================================================================');
-disp(['greedy algorithm is finished!!']);
+disp('=====================================================================');
+disp('==================   Greedy algorithm finished   ====================');
 disp(['duration: ',num2str(time),' s']);
 disp(['total number of basis funtions: ',num2str(it)]);
-disp('==================================================================================');
-disp('==============================   Greedy algorithm   ==============================');
-disp('==================================================================================');
+disp('=====================================================================');
+
+
 end

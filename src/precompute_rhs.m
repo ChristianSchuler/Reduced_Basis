@@ -2,7 +2,9 @@
 
 function [rhs_final] = precompute_rhs (B, nel_x, nel_y, nel_z, g, mode, U, ip)
 
-tic 
+disp('=====================================================================')
+disp('precompute rhs components ...');
+disp('=====================================================================')
 
 %% assemble rhs without rho values
 % dimension of reduced basis
@@ -53,8 +55,5 @@ elseif mode == 1
     end
     
 end
-
-disp('precompute rhs components');
-toc
-    
+ 
 end
