@@ -1,0 +1,98 @@
+#==============================================================================
+# 
+#     Copyright (c) 2011-2015, JGU Mainz, Anton Popov, Boris Kaus
+#     All rights reserved.
+# 
+#     This software was developed at:
+# 
+#          Institute of Geosciences
+#          Johannes-Gutenberg University, Mainz
+#          Johann-Joachim-Becherweg 21
+#          55128 Mainz, Germany
+# 
+#     project:    LaMEM
+#     filename:   Makefile.in
+# 
+#     LaMEM is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published
+#     by the Free Software Foundation, version 3 of the License.
+# 
+#     LaMEM is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#     See the GNU General Public License for more details.
+# 
+#     You should have received a copy of the GNU General Public License
+#     along with LaMEM. If not, see <http://www.gnu.org/licenses/>.
+# 
+# 
+#     Contact:
+#         Boris Kaus       [kaus@uni-mainz.de]
+#         Anton Popov      [popov@uni-mainz.de]
+# 
+# 
+#     Main development team:
+#          Anton Popov      [popov@uni-mainz.de]
+#          Boris Kaus       [kaus@uni-mainz.de]
+#          Tobias Baumann
+#          Adina Pusok
+#          Arthur Bauville
+# 
+#==============================================================================
+
+# Define compilation mode
+# deb - debug 
+# opt - optimized (default)
+
+mode = opt
+
+#====================================================
+
+# Define additional warning & dependency generation flags (compiler-dependent)
+
+PLATFORM = $(shell uname -m)
+
+# IBM machine (XLC compiler assumed)
+ifeq ($(PLATFORM), ppc64)
+	LAMEM_FLAGS += -qmakedep=gcc -qinfo=nouse
+endif
+
+# Intel or AMD machine
+ifeq ($(PLATFORM), x86_64)
+   # Detect compilers
+   ifneq ($(shell mpicc -v 2>&1 | grep -c pgcc), 0)
+      # PORTLAND GROUP
+      DEPEN_FLAGS = -MM
+   endif
+   ifneq ($(shell mpicc -v 2>&1 | grep -c icc), 0)
+      # INTEL
+      DEPEN_FLAGS = -MM
+   endif
+   ifneq ($(shell mpicc -v 2>&1 | grep -c gcc), 0)
+      # GNU
+      DEPEN_FLAGS = -MM
+      LAMEM_FLAGS += -std=c++11 -Wall -W \
+      -Wconversion -Wunused-but-set-variable -Wpointer-arith \
+      -Wcast-align -Wwrite-strings -Winline -Wno-sign-conversion \
+      -Wno-unused-result -Wno-inline
+   endif
+   ifneq ($(shell mpicc -v 2>&1 | grep -c Apple), 0)
+      # GNU
+      DEPEN_FLAGS = -MM
+      LAMEM_FLAGS += -std=c++11  -pedantic -Wall -W -Wmissing-prototypes \
+      -Wconversion -Wunused-but-set-variable -Wpointer-arith \
+      -Wcast-align -Wwrite-strings -Winline -Wno-sign-conversion \
+      -Wno-unused-result -Wno-inline
+   endif   
+endif
+
+#====================================================
+
+# Environment required for documentation 
+# Define paths to most current pdflatex and bibtex implementation
+
+PDFLATEX = $(shell which pdflatex)
+BIBTEX = $(shell which bibtex)
+
+#====================================================
+
