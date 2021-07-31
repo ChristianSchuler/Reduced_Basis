@@ -38,13 +38,13 @@
 
 # Number of cells for all segments
 	nel_x = 32
-	nel_y = 32
+	nel_y = 2
 	nel_z = 32
 
 # Coordinates of all segments (including start and end points)
 
 	coord_x = 0 700
-	coord_y =  0    800
+	coord_y =  -10    10
 	coord_z = -660  40
 	
 #===============================================================================
@@ -74,35 +74,35 @@
 #===============================================================================
 
 	gravity        = 0.0 0.0 -9.81  # gravity vector
-	FSSA           = 1.0            # free surface stabilization parameter [0 - 1]
-	init_guess     = 1              # initial guess flag
+	FSSA           = 0.0            # free surface stabilization parameter [0 - 1]
+	init_guess     = 0              # initial guess flag
 
 	p_litho_visc   = 1              # use lithostatic pressure for creep laws
 	p_litho_plast  = 0              # use lithostatic pressure for plasticity			
-	p_lim_plast    = 1              # limit pressure at first iteration for plasticity
+	p_lim_plast    = 0              # limit pressure at first iteration for plasticity
 
 	eta_min        = 1e18           # viscosity upper bound
 	eta_max        = 1e23           # viscosity lower limit
 	eta_ref        = 1e21           # reference viscosity (initial guess)
 	DII_ref        = 1e-15          # background (reference) strain-rate
 	
-	min_cohes      = 1e5            # ch lower bound
-	min_fric       = 0.0            # fr lower bound
-	tau_ult        = 5e8            # ultimate yield stress
+	#min_cohes      = 1e5            # ch lower bound
+	#min_fric       = 0.0            # fr lower bound
+	#tau_ult        = 5e8            # ultimate yield stress
 
 	
 #===============================================================================
 # Solver options
 #===============================================================================
-        SolverType 			=	multigrid 		# solver [direct or multigrid]
-        MGLevels 			=	3			# number of MG levels [default=3]
-	MGSweeps 			=	10			# number of MG smoothening steps per level [default=10]
-	MGSmoother 			=	chebyshev 	# type of smoothener used [chebyshev or jacobi]
-	MGCoarseSolver 		=	mumps 		# coarse grid solver [direct/mumps/superlu_dist or redundant - more options specifiable through the command-line options -crs_ksp_type & -crs_pc_type]
+ #       SolverType 			=	multigrid 		# solver [direct or multigrid]
+ #       MGLevels 			=	3			# number of MG levels [default=3]#
+#	MGSweeps 			=	10			# number of MG smoothening steps per #level [default=10]
+#	MGSmoother 			=	chebyshev 	# type of smoothener used [chebyshev or #jacobi]
+#	MGCoarseSolver 		=	mumps 		# coarse grid solver [direct/mumps/#superlu_dist or redundant - more options specifiable through the command-line options -crs_ksp_type & -#crs_pc_type]
 
-        #SolverType 		=	direct 			# solver [direct or multigrid]
-	#DirectSolver 	=	mumps			# mumps/superlu_dist/pastix	
-	#DirectPenalty 	=	1e5
+        SolverType 		=	direct 			# solver [direct or multigrid]
+	DirectSolver 	=	mumps			# mumps/superlu_dist/pastix	
+	DirectPenalty 	=	1e5
 
 
 #===============================================================================
@@ -292,13 +292,14 @@
  	#-js_ksp_monitor
 	#-js_ksp_rtol 1e-8
 	#-js_ksp_atol 1e-10
-#	#-js_ksp_view
+ 	#-js_ksp_view
 
 	# Direct solver with penalty method
-	#-pcmat_type    mono
-	#-pcmat_pgamma  1e5	# penalty parameter
-	#-jp_type       user
-	#-jp_pc_type    lu
+	-pcmat_type    mono
+	#-pcmat_no_dev_proj
+	-pcmat_pgamma  1e5	# penalty parameter
+	-jp_type       user
+	-jp_pc_type    lu
 
 
 	

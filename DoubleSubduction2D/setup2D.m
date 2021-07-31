@@ -1,6 +1,8 @@
 % Create a 2D subduction setup with particles & temperature
-function [] = setup3D (l_x,l_y)
+function [] = setup2D (SubductionAngle)
 
+SubductionAngle1 = SubductionAngle(1);
+SubductionAngle2 = SubductionAngle(2);
 % Tell the code where the LaMEM matlab routines are 
 addpath /home/chris/software/LaMEM/matlab
 
@@ -8,7 +10,7 @@ LaMEM_Parallel_output   =    0;
 
 RandomNoise             =   logical(0); % add random noise to particles?
 
-LaMEM_input_file        =   'Subduction3D.dat';
+LaMEM_input_file        =   'Subduction2D.dat';
 
 %% Compute 3D grid, depending on whether we are on 1 or >1 processors
 if ~LaMEM_Parallel_output 
@@ -16,7 +18,7 @@ if ~LaMEM_Parallel_output
     % parameters here. 
     % Important: the resolution you use here should be identical to what
     % is specified in then *.dat file!
-    disp(['Creating setup for 1 processor using LaMEM file: ', LaMEM_input_file])
+    %disp(['Creating setup for 1 processor using LaMEM file: ', LaMEM_input_file])
 
     % Read info from LaMEM input file & create 3D grid    
     [npart_x,npart_y,npart_z,Grid,X,Y,Z,W,L,H] =   LaMEM_ParseInputFile(LaMEM_input_file);
@@ -31,10 +33,10 @@ else
     % file shoule be created first by running LaMEM on the desired # of
     % processors as:
     %   mpiexec -n 2 ../../bin/opt/LaMEM -ParamFile Subduction2D_FreeSlip_MATLABParticles_Linear_DirectSolver.dat -mode save_grid
-    disp(['Creating setup in parallel using LaMEM file: ', LaMEM_input_file])
+   % disp(['Creating setup in parallel using LaMEM file: ', LaMEM_input_file])
       
     % Define parallel partition file
-    Parallel_partition                          =   'ProcessorPartitioning_4cpu_4.1.1.bin'
+    Parallel_partition                          =   'ProcessorPartitioning_4cpu_1.2.2.bin'
     
     % Load grid from parallel partitioning file
     [npart_x,npart_y,npart_z]  =   LaMEM_ParseInputFile(LaMEM_input_file);
@@ -58,47 +60,34 @@ end
 % SPECIFY PARAMETERS OF THE SLAB
 %==========================================================================
 
-dcrusts    = 20;         % depth subducting crust
+dcrusts    = 25;         % depth subducting crust
 dmliths = dcrusts+50;    % depth subducting mantle lithosphere
 
 dcrusto    = 15;         % depth oceanic crust
-dmlitho = dcrusto+50;    % depth oceanic mantle lithosphere  %% must not exceed other lithospheric depths
+dmlitho = dcrusto+40;    % depth oceanic mantle lithosphere  %% must not exceed other lithospheric depths
 
 dcrust  = 20;        % depth continental crust middle of the plate
 dmlith  = dcrust+50; % depth mantle lithosphere
 
-m_x = 375;
-m_y = 450;
+m_x = max(X(:))/2;
 
+l_x = 120;
 p_x = m_x - l_x;
-p_y = m_y - l_y;
 d_x = 2*l_x;
-d_y = 2*l_y;
 
-
-%p_x     = 250;        % starting point of horizontal slab part in x direction
-%p_y     = 250;        % " y "
-%d_x     = 1000;          % length of horizontal slab part in x direction
-%d_y     = 500;           % " y "
-
-% inner continental plate
-% p_xc    = p_x;        % starting point of horizontal slab part in x direction
-% p_yc    = 350;        % " y "
-% d_xc    = 1000;          % length of horizontal slab part in x direction
-% d_yc    = 300;           % " y "
+l_sl1 = 200;
+l_sl2 = 200;
 
 lslab1 =  200;        % length slab 1
 lslab2 =  200;        % length slab 2
-wslab1 =  d_x;        % width slab 1
-wslab2 =  d_x;        % width slab 2
+wslab1 =  100;        % width slab 1
+wslab2 =  100;        % width slab 2
 
 % extension of weak zone 1
-d_weak = 6; % depth
+d_weak = 12; % depth
 h_weak = 50; % horizontal extension in y direction
 
 % properties of subducting slab
-SubductionAngle1     =   40;     % Subduction angle slab 1
-SubductionAngle2     =   20;     % Subduction angle slab 1
 ThermalAge_Myrs     =   50;     % Thermal age of the slab in Myrs
 ThicknessCrust      =   10;
 
@@ -125,48 +114,48 @@ BoxSides            =   [min(X(:)) max(X(:)) min(Y(:)) max(Y(:)) -dmlitho  0];  
 [Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 3,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle);  
 
 BoxSides            =   [min(X(:)) max(X(:)) min(Y(:)) max(Y(:)) -dcrusto  0];  % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 5,'TempType','linear', 'topTemp',T_mantle,'botTemp', T_mantle); % Set slab to mantle lithosphere phase
+[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 5,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle,'thermalAge',40); % Set slab to mantle lithosphere phase
   
 
 %% Add horizontal part of slab 
-BoxSides            =   [p_x (p_x+d_x) p_y (p_y+d_y) -dmliths 0];  % [Left Right Front Back Bottom Top] of the box
+BoxSides            =   [p_x (p_x+d_x) min(Y(:)) max(Y(:)) -dmliths 0];  % [Left Right Front Back Bottom Top] of the box
 [Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 3,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle);                         % Set slab to mantle lithosphere phase
 
-BoxSides            =   [p_x (p_x+d_x) p_y (p_y+d_y) -dcrusts 0]; % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 4);               % Add crust (will override the mantle lithosphere phase above)
+BoxSides            =   [p_x (p_x+d_x) min(Y(:)) max(Y(:)) -dcrusts 0]; % [Left Right Front Back Bottom Top] of the box
+[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 4,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle,'thermalAge',80);               % Add crust (will override the mantle lithosphere phase above)
 
 % weak zones
-BoxSides            =   [p_x (p_x+d_x) p_y (p_y+h_weak) -d_weak 0]; % [Left Right Front Back Bottom Top] of the box
+BoxSides            =   [p_x (p_x+h_weak) min(Y(:)) max(Y(:)) -d_weak 0]; % [Left Right Front Back Bottom Top] of the box
 [Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 6); % Add crust (will override the mantle lithosphere phase above)
 
-BoxSides            =   [p_x (p_x+d_x) (p_y+d_y-h_weak) (p_y+d_y) -d_weak 0]; % [Left Right Front Back Bottom Top] of the box
+BoxSides            =   [p_x+d_x-h_weak p_x+d_x min(Y(:)) max(Y(:)) -d_weak 0]; % [Left Right Front Back Bottom Top] of the box
 [Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 6);               % Add crust (will override the mantle lithosphere phase above)
 
 
-%% slab 1
-RotPt               =   [p_y, p_x ,0];
+% %% slab 1
+RotPt               =   [p_x,0,0];
+BoxSides            =   [p_x-l_sl1 p_x min(Y(:)) max(Y(:)) -dmliths 0];  % [Left Right Front Back Bottom Top] of the box
+[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 3, 'RotationPoint',RotPt, 'DipAngle', -SubductionAngle1,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle);          % mantle lithosphere
 
-BoxSides            =   [p_y-lslab1 p_y p_x p_x+wslab1  -dmliths 0];  % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,Y,X,Z,BoxSides, 3, 'RotationPoint',RotPt, 'DipAngle', -SubductionAngle1);          % mantle lithosphere
-
-BoxSides            =   [p_y-lslab1 p_y p_x p_x+wslab2  -dcrusts 0];  % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,Y,X,Z,BoxSides, 4, 'RotationPoint',RotPt, 'DipAngle', -SubductionAngle1);       	% crust (will override the slab phase above
-
-% weak zone
-BoxSides            =   [p_y-lslab1 p_y p_x p_x+wslab2  -d_weak 0];  % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,Y,X,Z,BoxSides, 6, 'RotationPoint',RotPt, 'DipAngle', -SubductionAngle1);
-
-%% slab 2
-RotPt               =   [p_y+d_y, p_x ,0];
-BoxSides            =   [p_y+d_y p_y+lslab2+d_y p_x p_x+wslab1  -dmliths 0];  % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,Y,X,Z,BoxSides, 3, 'RotationPoint',RotPt, 'DipAngle', SubductionAngle2);          % mantle lithosphere
-
-BoxSides            =   [p_y+d_y p_y+lslab2+d_y p_x p_x+wslab2  -dcrusts 0];  % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,Y,X,Z,BoxSides, 4, 'RotationPoint',RotPt, 'DipAngle', SubductionAngle2);       	% crust (will override the slab phase above
+BoxSides            =   [p_x-l_sl1 p_x min(Y(:)) max(Y(:)) -dcrusts 0];  % [Left Right Front Back Bottom Top] of the box
+[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 4, 'RotationPoint',RotPt, 'DipAngle', -SubductionAngle1,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle,'thermalAge',80);       	% crust (will override the slab phase above
 
 % weak zone
-BoxSides            =   [p_y+d_y p_y+lslab2+d_y p_x p_x+wslab2  -d_weak 0];  % [Left Right Front Back Bottom Top] of the box
-[Phase,Temp]        =   AddBox(Phase,Temp,Y,X,Z,BoxSides, 6, 'RotationPoint',RotPt, 'DipAngle', SubductionAngle2);       	% crust (will override the slab phase above
+BoxSides            =   [p_x-l_sl1/2 p_x min(Y(:)) max(Y(:))  -d_weak 0];  % [Left Right Front Back Bottom Top] of the box
+[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 6, 'RotationPoint',RotPt, 'DipAngle', -SubductionAngle1);
+
+% %% slab 2
+RotPt               =   [p_x+d_x,0,0];
+BoxSides            =   [p_x+d_x p_x+d_x+l_sl2 min(Y(:)) max(Y(:))  -dmliths 0];  % [Left Right Front Back Bottom Top] of the box% [Phase,Temp]        =   AddBox(Phase,Temp,Y,X,Z,BoxSides, 3, 'RotationPoint',RotPt, 'DipAngle', SubductionAngle2,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle);          % mantle lithosphere 
+[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 3, 'RotationPoint',RotPt, 'DipAngle', SubductionAngle2,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle,'thermalAge',80);       	% crust (will override the slab phase above
+
+BoxSides            =   [p_x+d_x p_x+d_x+l_sl2 min(Y(:)) max(Y(:))  -dcrusts 0];  % [Left Right Front Back Bottom Top] of the box% [Phase,Temp]        =   AddBox(Phase,Temp,Y,X,Z,BoxSides, 3, 'RotationPoint',RotPt, 'DipAngle', SubductionAngle2,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle);          % mantle lithosphere 
+[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 4, 'RotationPoint',RotPt, 'DipAngle', SubductionAngle2,'TempType','Halfspace', 'topTemp',T_surf,'botTemp', T_mantle,'thermalAge',80);       	% crust (will override the slab phase above
+
+
+% weak zone
+BoxSides            =   [p_x+d_x p_x+d_x+l_sl1/2 min(Y(:)) max(Y(:))  -d_weak 0];  % [Left Right Front Back Bottom Top] of the box
+[Phase,Temp]        =   AddBox(Phase,Temp,X,Y,Z,BoxSides, 6, 'RotationPoint',RotPt, 'DipAngle', SubductionAngle2);       	% crust (will override the slab phase above
 
 
 %% inner continental plate
@@ -178,8 +167,8 @@ BoxSides            =   [p_y+d_y p_y+lslab2+d_y p_x p_x+wslab2  -d_weak 0];  % [
 
 
 %% Set Mantle Lithosphere for mantle points that have temperatures < 1200 Celcius
-ind                 =    find(Temp<1200 & Phase==1);
-Phase(ind)          =    3;
+%ind                 =    find(Temp<1200 & Phase==1);
+%Phase(ind)          =    3;
 
 %% Add sticky air
 BoxSides            =   [min(X(:)) max(X(:))  min(Y(:)) max(Y(:)) 0 max(Z(:))];  % [Left Right Front Back Bottom Top] of the box
@@ -223,7 +212,7 @@ A.npart_y=  npart_y;
 A.npart_z=  npart_z;
 
 % PARAVIEW VISUALIZATION
-FDSTAGWriteMatlab2VTK(A,'BINARY'); % default option
+%FDSTAGWriteMatlab2VTK(A,'BINARY'); % default option
 
 % SAVE PARALLEL DATA (parallel)
 FDSTAGSaveMarkersParallelMatlab(A,Parallel_partition);
