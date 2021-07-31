@@ -1,7 +1,7 @@
 # Reduced Basis
 
 With this application reduced basis solutions to Stokes flow with linear rheolgy solved by [LaMEM](https://bitbucket.org/bkaus/lamem/src/master/) can be created.
-At the moment it is important, that the version of [LaMEM](https://bitbucket.org/bkaus/lamem/src/master/) which is stored in this directory is used.
+At the moment it is important, that the src files of [LaMEM](https://bitbucket.org/bkaus/lamem/src/master/) which are stored in the [LaMEM_src_files](LaMEM_src_files) are used.
 It is feasible for 2D setups with linear rheology.
 
 ## Workflow
