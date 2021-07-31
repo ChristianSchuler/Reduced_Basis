@@ -38,7 +38,7 @@ par = [par1,par2];
 
 
 
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 n_p     =  nel_x*nel_y*nel_z;
 n_vel   = ((nel_x+1)*nel_y*nel_z)+(nel_x*(nel_y+1)*nel_z)+(nel_x*nel_y*(nel_z+1));
 n_tot = n_vel + n_p;
@@ -68,7 +68,7 @@ cd ..
 %% ================= check solutions ======================================
 
 % markers
-setup2D(par);
+feval(setup,par(loc,:));
 
 % run simulation
 [t1,t2] = system([lamem,' -ParamFile ', input]);

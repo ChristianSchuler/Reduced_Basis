@@ -25,12 +25,17 @@ coordx = 700;
 coordy = 20;
 coordz = 700;
 
-
 nel_x = 32;
 nel_y = 2;
 nel_z = 32;
 
+% example that lies in parameter space for RB problem
+par1 = 32.456;
+par2 = 36.342;
 
+par = [par1,par2];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 n_p     =  nel_x*nel_y*nel_z;
 n_vel   = ((nel_x+1)*nel_y*nel_z)+(nel_x*(nel_y+1)*nel_z)+(nel_x*nel_y*(nel_z+1));
 n_tot = n_vel + n_p;
@@ -59,12 +64,8 @@ cd ..
 
 %% ================= check solutions ======================================
 
-% example that lies in parameter space for RB problem
-par1 = 32.456;
-par2 = 36.342;
-
 % markers
-setup2D([par1,par2]);
+feval(setup,par(loc,:));
 
 % run simulation
 [t1,t2] = system([lamem,' -ParamFile ', input]);
