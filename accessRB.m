@@ -17,7 +17,7 @@ input = '"Subduction2D.dat"';
 % setup function file
 setup = 'setup2D';
 % name of folder to store RB components
-folder = 'm6_30_40_max';
+folder = '../RB_runs/m6_30_40_max';
 
 
 %% ======== length of the domain in x,y and z direction ===================
@@ -31,7 +31,7 @@ nel_z = 32;
 
 % example that lies in parameter space for RB problem
 par1 = 32.456;
-par2 = 36.342;
+par2 = 39.9;
 
 par = [par1,par2];
 
@@ -60,12 +60,12 @@ load('res_max.mat');
 load('rho_DEIM.mat');
 load('rhs_bl.mat');
 load('rhs_bl_DEIM.mat');
-cd ..
+cd ('/home/chris/Desktop/MA/RB_Stokes/reduced_basis_generation/');
 
 %% ================= check solutions ======================================
 
 % markers
-feval(setup,par(loc,:));
+feval(setup,par);
 
 % run simulation
 [t1,t2] = system([lamem,' -ParamFile ', input]);

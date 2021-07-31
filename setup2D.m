@@ -71,7 +71,7 @@ dmlith  = dcrust+50; % depth mantle lithosphere
 
 m_x = max(X(:))/2;
 
-l_x = 120;
+l_x = 80;
 p_x = m_x - l_x;
 d_x = 2*l_x;
 

@@ -14,7 +14,7 @@ input = '"Subduction2D.dat"';
 % setup function file
 setup = 'setup2D';
 % name of folder to store RB components
-folder = 'm6_30_40_2norm';
+folder = '../RBruns/m2_2norm_20_60_14';
 
 % create 'Matrices' folder or first delete it if it already exists
 if not(isfolder('Matrices'))
@@ -35,13 +35,13 @@ g    = -9.81;   % acceleration in z direction;acceleration of other directions -
 %% ======== adjust RB parameters ==========================================
 % define parameters/their ranges and distribution
 % parameter 1
-st   = 30;  % smallest parameter value
-en   = 40;  % largest parameter value
+st   = 20;  % smallest parameter value
+en   = 60;  % largest parameter value
 n    = 14; % parameter spacing
 par1 = linspace(st,en,n);
 % parameter 2
-st   = 30;  % smallest parameter value
-en   = 40;  % largest parameter value
+st   = 20;  % smallest parameter value
+en   = 60;  % largest parameter value
 n    = 14; % parameter spacing
 par2 = linspace(st,en,n);
 
@@ -50,7 +50,7 @@ par = allcomb(par1,par2);
 
 
 %% ======== reduced basis routine =========================================
-tol  = 1e-6;    % tolerance for Greedy algorithm
+tol  = 1e-2;    % tolerance for Greedy algorithm
 n    = 1;      % orthogonalization of basis every n steps
 [B, res_max, ETA, RHO] = Reduced_Basis(lamem, input,setup, nel_x, nel_y, nel_z,par,tol,n);
 
