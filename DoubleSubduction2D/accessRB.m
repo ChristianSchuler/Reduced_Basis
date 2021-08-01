@@ -68,7 +68,7 @@ cd ..
 %% ================= check solutions ======================================
 
 % markers
-feval(setup,par(loc,:));
+feval(setup,par);
 
 % run simulation
 [t1,t2] = system([lamem,' -ParamFile ', input]);
